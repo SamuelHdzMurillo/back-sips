@@ -2,7 +2,7 @@
   "info": {
     "name": "Back SIPS - API",
     "_postman_id": "back-sips-api-collection",
-    "description": "Colección completa de rutas para la API REST de Back SIPS (Laravel 10).\n\nBase URL configurada en la variable {{base_url}}.\n\n**Leyenda en los bodies:**\n- [REQUERIDO] = campo obligatorio, la petición falla sin él\n- [OPCIONAL] = nullable, se puede omitir o enviar null",
+    "description": "Colección completa de rutas para la API REST de Back SIPS (Laravel 10).\n\nBase URL configurada en la variable {{base_url}}.\n\n**Autenticación:**\nTodas las rutas (excepto login y register-empleado) requieren el header:\n`Authorization: Bearer {{auth_token}}`\n\nEjecuta primero **Login** y copia el token a la variable `auth_token`.\n\n**Leyenda en los bodies:**\n- [REQUERIDO] = campo obligatorio\n- [OPCIONAL] = nullable, se puede omitir o enviar null\n\n**Roles disponibles:** `superadmin`, `admin`, `empleado`",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -11,6 +11,18 @@
       "value": "http://localhost/back-sips/public",
       "type": "string",
       "description": "Cambia según tu entorno: http://localhost/back-sips/public (XAMPP) o http://127.0.0.1:8000 (artisan serve)"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string",
+      "description": "Token Sanctum obtenido al hacer login. Se usa en el header Authorization: Bearer {{auth_token}}"
+    },
+    {
+      "key": "admin_user_id",
+      "value": "2",
+      "type": "string",
+      "description": "ID del usuario admin al que se asignan/revocan módulos"
     },
     {
       "key": "empleado_no",
@@ -57,22 +69,207 @@
   ],
   "item": [
     {
+      "name": "Autenticación",
+      "description": "Endpoints de login, registro y gestión de sesión.\n\n**Flujo inicial:**\n1. Ejecuta **Login** con las credenciales del superadmin: `superadmin@sips.com` / `Admin@1234!`\n2. Copia el `token` de la respuesta y pégalo en la variable de colección `auth_token`\n3. Ya puedes usar el resto de los endpoints\n\n**Credenciales superadmin inicial:**\n- Email: `superadmin@sips.com`\n- Password: `Admin@1234!`",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"superadmin@sips.com\",\n  \"password\": \"Admin@1234!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login para todos los roles (superadmin, admin, empleado).\n\nDevuelve un token Sanctum y los datos del usuario:\n- `token`: copia este valor a la variable `auth_token`\n- `user.role`: rol del usuario\n- `user.modules`: módulos disponibles con sus acciones permitidas\n- `user.empleado`: datos del expediente (solo para rol `empleado`)\n\n**[REQUERIDO]**\n- `email` (string)\n- `password` (string)"
+          }
+        },
+        {
+          "name": "Registro de superadmin o admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Administrador SIPS\",\n  \"email\": \"admin@sips.com\",\n  \"password\": \"Admin@1234!\",\n  \"password_confirmation\": \"Admin@1234!\",\n  \"role\": \"admin\",\n  \"modules\": [\"empleados\", \"solicitud-lentes\", \"lotes-lentes\"]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Registra un nuevo usuario con rol `superadmin` o `admin`.\n\n**Solo accesible con token de `superadmin`.**\n\n**[REQUERIDO]**\n- `name` (string, max 255)\n- `email` (string, email único)\n- `password` (string, min 8)\n- `password_confirmation` (string, igual que password)\n- `role` (string): `superadmin` o `admin`\n\n**[OPCIONAL]**\n- `modules` (array de slugs): solo aplica cuando `role = admin`. Ej: `[\"empleados\", \"lotes-lentes\"]`\n\n**Módulos disponibles:** `empleados`, `perfil`, `familiares`, `plazas`, `estudios`, `solicitud-lentes`, `lotes-lentes`"
+          }
+        },
+        {
+          "name": "Registro de empleado",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numero_empleado\": 1001,\n  \"rfc\": \"GALJ900101XXX\",\n  \"email\": \"juan.garcia@sips.com\",\n  \"password\": \"MiPassword123!\",\n  \"password_confirmation\": \"MiPassword123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register-empleado",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register-empleado"]
+            },
+            "description": "Auto-registro de empleado. **Endpoint público (no requiere token).**\n\nValida que el empleado exista en la tabla `empleados` usando su número y RFC antes de crear la cuenta. Una vez validado, crea el usuario con `role = empleado` y devuelve el token directamente.\n\n**[REQUERIDO]**\n- `numero_empleado` (integer): campo `EMPLEADO_NO` en la tabla empleados\n- `rfc` (string): campo `EMPLEADO_RFC` (no distingue mayúsculas/minúsculas)\n- `email` (string, email único en users)\n- `password` (string, min 8)\n- `password_confirmation` (string, igual que password)\n\n**Errores posibles:**\n- `422` — número de empleado o RFC no válido\n- `422` — empleado ya tiene cuenta registrada"
+          }
+        },
+        {
+          "name": "Mi perfil (me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Devuelve los datos del usuario autenticado con su rol, módulos y (si es empleado) los datos de su expediente.\n\nRequiere token válido en `Authorization: Bearer {{auth_token}}`."
+          }
+        },
+        {
+          "name": "Cerrar sesión (logout)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "logout"]
+            },
+            "description": "Revoca el token actual. El token deja de ser válido inmediatamente.\n\nNo requiere body."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Módulos",
+      "description": "Gestión de módulos del sistema.\n\n**Solo accesible con token de `superadmin`.**\n\nPermite asignar y revocar acceso a módulos para usuarios con rol `admin`.\n\n**Módulos disponibles:**\n- `empleados` — Gestión de empleados\n- `perfil` — Perfil profesional\n- `familiares` — Familiares del empleado\n- `plazas` — Plazas del empleado\n- `estudios` — Estudios académicos\n- `solicitud-lentes` — Solicitudes de lentes\n- `lotes-lentes` — Lotes de lentes",
+      "item": [
+        {
+          "name": "Listar todos los módulos",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/modules",
+              "host": ["{{base_url}}"],
+              "path": ["api", "modules"]
+            },
+            "description": "Devuelve el catálogo completo de módulos del sistema.\n\n**Requiere rol:** `superadmin`"
+          }
+        },
+        {
+          "name": "Asignar módulos a un admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": {{admin_user_id}},\n  \"modules\": [\"empleados\", \"solicitud-lentes\", \"lotes-lentes\"]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/modules/assign",
+              "host": ["{{base_url}}"],
+              "path": ["api", "modules", "assign"]
+            },
+            "description": "Asigna uno o más módulos a un usuario con rol `admin`.\n\nUsa `syncWithoutDetaching`, por lo que los módulos ya asignados no se pierden.\n\n**Requiere rol:** `superadmin`\n\n**[REQUERIDO]**\n- `user_id` (integer): ID del usuario admin\n- `modules` (array): slugs de módulos a asignar. Ej: `[\"empleados\", \"lotes-lentes\"]`"
+          }
+        },
+        {
+          "name": "Revocar módulos de un admin",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": {{admin_user_id}},\n  \"modules\": [\"lotes-lentes\"]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/modules/revoke",
+              "host": ["{{base_url}}"],
+              "path": ["api", "modules", "revoke"]
+            },
+            "description": "Quita uno o más módulos a un usuario con rol `admin`.\n\nSolo elimina los módulos indicados; el resto permanece asignado.\n\n**Requiere rol:** `superadmin`\n\n**[REQUERIDO]**\n- `user_id` (integer): ID del usuario admin\n- `modules` (array): slugs de módulos a revocar"
+          }
+        },
+        {
+          "name": "Ver módulos de un admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/modules/user/{{admin_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "modules", "user", "{{admin_user_id}}"]
+            },
+            "description": "Devuelve los módulos asignados a un usuario admin específico.\n\n**Requiere rol:** `superadmin`"
+          }
+        }
+      ]
+    },
+    {
       "name": "Empleados",
-      "description": "CRUD completo de empleados.\n\nCampos requeridos al crear: EMPLEADO_NO, EMPLEADO_APELLIDO_PATERNO, EMPLEADO_APELLIDO_MATERNO, EMPLEADO_NOMBRE.\nEl resto son opcionales (nullable).",
+      "description": "CRUD completo de empleados.\n\n**Requiere:** token con módulo `empleados`.\n\nCampos requeridos al crear: EMPLEADO_NO, EMPLEADO_APELLIDO_PATERNO, EMPLEADO_APELLIDO_MATERNO, EMPLEADO_NOMBRE.\nEl resto son opcionales (nullable).\n\n**Nota para empleados:** el rol `empleado` no tiene acceso a este módulo directamente; solo puede ver su propio expediente a través de `GET /auth/me`.",
       "item": [
         {
           "name": "Listar todos los empleados",
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/empleados",
               "host": ["{{base_url}}"],
               "path": ["api", "empleados"]
             },
-            "description": "Devuelve la lista completa de empleados."
+            "description": "Devuelve la lista completa de empleados.\n\n**Requiere módulo:** `empleados`"
           }
         },
         {
@@ -81,7 +278,8 @@
             "method": "POST",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "body": {
               "mode": "raw",
@@ -93,7 +291,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "empleados"]
             },
-            "description": "Crea un nuevo empleado.\n\n**Campos REQUERIDOS:**\n- `EMPLEADO_NO` (integer, único en BD)\n- `EMPLEADO_APELLIDO_PATERNO` (string, max 100)\n- `EMPLEADO_APELLIDO_MATERNO` (string, max 100)\n- `EMPLEADO_NOMBRE` (string, max 100)\n\n**Campos OPCIONALES (nullable):**\n- `EMPLEADO_CURP` (string, max 20)\n- `EMPLEADO_RFC` (string, max 20)\n- `EMPLEADO_NSS` (string, max 20)\n- `EMPLEADO_TIPO_SANGRE` (string, max 5)\n- `EMPLEADO_FECHA_INGRESO` (date: YYYY-MM-DD)\n- `EMPLEADO_ANTIGUEDAD` (integer)\n- `EMPLEADO_ACTIVO` (string, 1 caracter: \"1\" o \"0\")\n- `EMPLEADO_CORREO_ELECTRONICO` (email, max 150)\n- `EMPLEADO_CLAVE_ACCESO` (string, max 255 — se guarda con hash)\n- `EMPLEADO_RUTA_FOTO` (string, max 255)\n- `EMPLEADO_RUTA_QR` (string, max 255)\n- `EMPLEADO_ULTIMO_INGRESO` (date: YYYY-MM-DD)"
+            "description": "Crea un nuevo empleado.\n\n**Requiere módulo:** `empleados`\n\n**Campos REQUERIDOS:**\n- `EMPLEADO_NO` (integer, único en BD)\n- `EMPLEADO_APELLIDO_PATERNO` (string, max 100)\n- `EMPLEADO_APELLIDO_MATERNO` (string, max 100)\n- `EMPLEADO_NOMBRE` (string, max 100)\n\n**Campos OPCIONALES (nullable):**\n- `EMPLEADO_CURP` (string, max 20)\n- `EMPLEADO_RFC` (string, max 20)\n- `EMPLEADO_NSS` (string, max 20)\n- `EMPLEADO_TIPO_SANGRE` (string, max 5)\n- `EMPLEADO_FECHA_INGRESO` (date: YYYY-MM-DD)\n- `EMPLEADO_ANTIGUEDAD` (integer)\n- `EMPLEADO_ACTIVO` (string, 1 caracter: \"1\" o \"0\")\n- `EMPLEADO_CORREO_ELECTRONICO` (email, max 150)\n- `EMPLEADO_CLAVE_ACCESO` (string, max 255)\n- `EMPLEADO_RUTA_FOTO` (string, max 255)\n- `EMPLEADO_RUTA_QR` (string, max 255)\n- `EMPLEADO_ULTIMO_INGRESO` (datetime: YYYY-MM-DD HH:mm:ss)"
           }
         },
         {
@@ -101,14 +299,15 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/empleados/{{empleado_no}}",
               "host": ["{{base_url}}"],
               "path": ["api", "empleados", "{{empleado_no}}"]
             },
-            "description": "Devuelve el empleado con sus relaciones: perfil (con estudios), familiares y plazas."
+            "description": "Devuelve el empleado con sus relaciones: perfil (con estudios), familiares y plazas.\n\n**Requiere módulo:** `empleados`"
           }
         },
         {
@@ -117,7 +316,8 @@
             "method": "PUT",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "body": {
               "mode": "raw",
@@ -129,7 +329,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "empleados", "{{empleado_no}}"]
             },
-            "description": "Actualiza un empleado existente. Todos los campos son opcionales (`sometimes`); solo se actualizan los que se envíen.\n\n**Nota:** `EMPLEADO_NO` no se puede cambiar desde este endpoint.\n\n**Campos disponibles:**\n- `EMPLEADO_APELLIDO_PATERNO` (string, max 100)\n- `EMPLEADO_APELLIDO_MATERNO` (string, max 100)\n- `EMPLEADO_NOMBRE` (string, max 100)\n- `EMPLEADO_CURP` (string, max 20)\n- `EMPLEADO_RFC` (string, max 20)\n- `EMPLEADO_NSS` (string, max 20)\n- `EMPLEADO_TIPO_SANGRE` (string, max 5)\n- `EMPLEADO_FECHA_INGRESO` (date: YYYY-MM-DD)\n- `EMPLEADO_ANTIGUEDAD` (integer)\n- `EMPLEADO_ACTIVO` (string, 1 caracter: \"1\" o \"0\")\n- `EMPLEADO_CORREO_ELECTRONICO` (email, max 150)\n- `EMPLEADO_CLAVE_ACCESO` (string, max 255 — se guarda con hash)\n- `EMPLEADO_RUTA_FOTO` (string, max 255)\n- `EMPLEADO_RUTA_QR` (string, max 255)\n- `EMPLEADO_ULTIMO_INGRESO` (date: YYYY-MM-DD)"
+            "description": "Actualiza un empleado existente. Todos los campos son opcionales (`sometimes`).\n\n**Requiere módulo:** `empleados`\n\n**Nota:** `EMPLEADO_NO` no se puede cambiar desde este endpoint."
           }
         },
         {
@@ -137,35 +337,37 @@
           "request": {
             "method": "DELETE",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/empleados/{{empleado_no}}",
               "host": ["{{base_url}}"],
               "path": ["api", "empleados", "{{empleado_no}}"]
             },
-            "description": "Elimina permanentemente el empleado con el número indicado."
+            "description": "Elimina permanentemente el empleado con el número indicado.\n\n**Requiere módulo:** `empleados`\n\n**No disponible para rol `empleado`.**"
           }
         }
       ]
     },
     {
       "name": "Perfil Profesional",
-      "description": "Perfil profesional asociado a un empleado. Solo puede existir un perfil por empleado.",
+      "description": "Perfil profesional asociado a un empleado.\n\n**Requiere:** token con módulo `perfil`.\n\nSolo puede existir un perfil por empleado.\n\n**Nota para empleados:** solo pueden ver y editar su propio perfil.",
       "item": [
         {
           "name": "Ver perfil del empleado",
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/empleados/{{empleado_no}}/perfil",
               "host": ["{{base_url}}"],
               "path": ["api", "empleados", "{{empleado_no}}", "perfil"]
             },
-            "description": "Devuelve el perfil profesional del empleado junto con sus estudios."
+            "description": "Devuelve el perfil profesional del empleado junto con sus estudios.\n\n**Requiere módulo:** `perfil`"
           }
         },
         {
@@ -174,7 +376,8 @@
             "method": "POST",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "body": {
               "mode": "raw",
@@ -186,7 +389,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "empleados", "{{empleado_no}}", "perfil"]
             },
-            "description": "Crea el perfil profesional del empleado.\n\n**Campos OPCIONALES (nullable):**\n- `PERFIL_DESCRIPCION` (string)\n\nEl `EMPLEADO_NO` se toma del path automáticamente."
+            "description": "Crea el perfil profesional del empleado.\n\n**Requiere módulo:** `perfil`\n\n**Campos OPCIONALES (nullable):**\n- `PERFIL_DESCRIPCION` (string)\n\nEl `EMPLEADO_NO` se toma del path automáticamente."
           }
         },
         {
@@ -195,7 +398,8 @@
             "method": "PUT",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "body": {
               "mode": "raw",
@@ -207,7 +411,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "perfil", "{{perfil_id}}"]
             },
-            "description": "Actualiza el perfil profesional por su ID.\n\n**Campos disponibles:**\n- `PERFIL_DESCRIPCION` (string, nullable)"
+            "description": "Actualiza el perfil profesional por su ID.\n\n**Requiere módulo:** `perfil`\n\n**Campos disponibles:**\n- `PERFIL_DESCRIPCION` (string, nullable)"
           }
         },
         {
@@ -215,35 +419,37 @@
           "request": {
             "method": "DELETE",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/perfil/{{perfil_id}}",
               "host": ["{{base_url}}"],
               "path": ["api", "perfil", "{{perfil_id}}"]
             },
-            "description": "Elimina el perfil profesional por su ID."
+            "description": "Elimina el perfil profesional por su ID.\n\n**Requiere módulo:** `perfil`\n\n**No disponible para rol `empleado`.**"
           }
         }
       ]
     },
     {
       "name": "Familiares",
-      "description": "Familiares de los empleados (hijos, cónyuge, etc.).",
+      "description": "Familiares de los empleados (hijos, cónyuge, etc.).\n\n**Requiere:** token con módulo `familiares`.\n\n**Nota para empleados:** solo pueden ver, crear y editar sus propios familiares. No pueden eliminar.",
       "item": [
         {
           "name": "Listar familiares del empleado",
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/empleados/{{empleado_no}}/familiares",
               "host": ["{{base_url}}"],
               "path": ["api", "empleados", "{{empleado_no}}", "familiares"]
             },
-            "description": "Devuelve todos los familiares registrados para el empleado indicado."
+            "description": "Devuelve todos los familiares registrados para el empleado indicado.\n\n**Requiere módulo:** `familiares`"
           }
         },
         {
@@ -252,7 +458,8 @@
             "method": "POST",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "body": {
               "mode": "raw",
@@ -264,7 +471,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "empleados", "{{empleado_no}}", "familiares"]
             },
-            "description": "Crea un familiar para el empleado indicado.\n\n**Campos REQUERIDOS:**\n- `NOMBRE` (string, max 100)\n- `APELLIDO_PATERNO` (string, max 100)\n- `APELLIDO_MATERNO` (string, max 100)\n- `PARENTESCO` (string, max 50)\n\n**Campos OPCIONALES (nullable):**\n- `DOCUMENTO_PARENTESCO` (string, max 255)\n\nEl `EMPLEADO_NO` se toma del path automáticamente."
+            "description": "Crea un familiar para el empleado indicado.\n\n**Requiere módulo:** `familiares`\n\n**Campos REQUERIDOS:**\n- `NOMBRE` (string, max 100)\n- `APELLIDO_PATERNO` (string, max 100)\n- `APELLIDO_MATERNO` (string, max 100)\n- `PARENTESCO` (string, max 50)\n\n**Campos OPCIONALES (nullable):**\n- `DOCUMENTO_PARENTESCO` (string, max 255)\n\nEl `EMPLEADO_NO` se toma del path automáticamente."
           }
         },
         {
@@ -272,14 +479,15 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/familiares/{{familiar_id}}",
               "host": ["{{base_url}}"],
               "path": ["api", "familiares", "{{familiar_id}}"]
             },
-            "description": "Devuelve el registro de un familiar específico por su ID."
+            "description": "Devuelve el registro de un familiar específico por su ID.\n\n**Requiere módulo:** `familiares`"
           }
         },
         {
@@ -288,7 +496,8 @@
             "method": "PUT",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "body": {
               "mode": "raw",
@@ -300,7 +509,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "familiares", "{{familiar_id}}"]
             },
-            "description": "Actualiza un familiar. Todos los campos son opcionales (`sometimes`).\n\n**Campos disponibles:**\n- `NOMBRE` (string, max 100)\n- `APELLIDO_PATERNO` (string, max 100)\n- `APELLIDO_MATERNO` (string, max 100)\n- `PARENTESCO` (string, max 50)\n- `DOCUMENTO_PARENTESCO` (string, max 255, nullable)"
+            "description": "Actualiza un familiar. Todos los campos son opcionales (`sometimes`).\n\n**Requiere módulo:** `familiares`"
           }
         },
         {
@@ -308,35 +517,37 @@
           "request": {
             "method": "DELETE",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/familiares/{{familiar_id}}",
               "host": ["{{base_url}}"],
               "path": ["api", "familiares", "{{familiar_id}}"]
             },
-            "description": "Elimina el familiar por su ID."
+            "description": "Elimina el familiar por su ID.\n\n**Requiere módulo:** `familiares`\n\n**No disponible para rol `empleado`.**"
           }
         }
       ]
     },
     {
       "name": "Plazas",
-      "description": "Plazas laborales de los empleados. Todos los campos son opcionales (nullable).",
+      "description": "Plazas laborales de los empleados.\n\n**Requiere:** token con módulo `plazas`.\n\n**Nota para empleados:** solo pueden ver sus propias plazas (solo lectura).",
       "item": [
         {
           "name": "Listar plazas del empleado",
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/empleados/{{empleado_no}}/plazas",
               "host": ["{{base_url}}"],
               "path": ["api", "empleados", "{{empleado_no}}", "plazas"]
             },
-            "description": "Devuelve todas las plazas del empleado indicado."
+            "description": "Devuelve todas las plazas del empleado indicado.\n\n**Requiere módulo:** `plazas`"
           }
         },
         {
@@ -345,7 +556,8 @@
             "method": "POST",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "body": {
               "mode": "raw",
@@ -357,7 +569,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "empleados", "{{empleado_no}}", "plazas"]
             },
-            "description": "Crea una plaza para el empleado indicado. Todos los campos son **opcionales (nullable)**.\n\n**Campos disponibles:**\n- `EMPLEADO_CCT_CLAVE` (string, max 20)\n- `EMPLEADO_CCT_NOMBRE` (string, max 150)\n- `EMPLEADO_PUESTO` (string, max 150)\n- `EMPLEADO_CATEGORIA` (string, max 100)\n- `EMPLEADO_FUNCION` (string, max 100)\n- `EMPLEADO_TIPO_PLAZA` (string, **exactamente 1 caracter**, ej. \"B\" de Base)\n- `HORAS` (integer)\n\nEl `EMPLEADO_NO` se toma del path automáticamente."
+            "description": "Crea una plaza para el empleado indicado. Todos los campos son opcionales (nullable).\n\n**Requiere módulo:** `plazas`\n\n**No disponible para rol `empleado`.**"
           }
         },
         {
@@ -365,14 +577,15 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/plazas/{{plaza_id}}",
               "host": ["{{base_url}}"],
               "path": ["api", "plazas", "{{plaza_id}}"]
             },
-            "description": "Devuelve una plaza específica por su ID."
+            "description": "Devuelve una plaza específica por su ID.\n\n**Requiere módulo:** `plazas`"
           }
         },
         {
@@ -381,7 +594,8 @@
             "method": "PUT",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "body": {
               "mode": "raw",
@@ -393,7 +607,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "plazas", "{{plaza_id}}"]
             },
-            "description": "Actualiza una plaza por su ID. Todos los campos son opcionales (nullable).\n\n**Campos disponibles:**\n- `EMPLEADO_CCT_CLAVE` (string, max 20)\n- `EMPLEADO_CCT_NOMBRE` (string, max 150)\n- `EMPLEADO_PUESTO` (string, max 150)\n- `EMPLEADO_CATEGORIA` (string, max 100)\n- `EMPLEADO_FUNCION` (string, max 100)\n- `EMPLEADO_TIPO_PLAZA` (string, **exactamente 1 caracter**)\n- `HORAS` (integer)"
+            "description": "Actualiza una plaza por su ID.\n\n**Requiere módulo:** `plazas`\n\n**No disponible para rol `empleado`.**"
           }
         },
         {
@@ -401,35 +615,37 @@
           "request": {
             "method": "DELETE",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/plazas/{{plaza_id}}",
               "host": ["{{base_url}}"],
               "path": ["api", "plazas", "{{plaza_id}}"]
             },
-            "description": "Elimina la plaza por su ID."
+            "description": "Elimina la plaza por su ID.\n\n**Requiere módulo:** `plazas`\n\n**No disponible para rol `empleado`.**"
           }
         }
       ]
     },
     {
       "name": "Estudios",
-      "description": "Estudios académicos dentro del perfil profesional. Todos los campos son opcionales (nullable).",
+      "description": "Estudios académicos dentro del perfil profesional.\n\n**Requiere:** token con módulo `estudios`.\n\n**Nota para empleados:** solo pueden ver, crear y editar sus propios estudios. No pueden eliminar.",
       "item": [
         {
           "name": "Listar estudios del perfil",
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/perfil/{{perfil_id}}/estudios",
               "host": ["{{base_url}}"],
               "path": ["api", "perfil", "{{perfil_id}}", "estudios"]
             },
-            "description": "Devuelve todos los estudios registrados en el perfil indicado."
+            "description": "Devuelve todos los estudios registrados en el perfil indicado.\n\n**Requiere módulo:** `estudios`"
           }
         },
         {
@@ -438,7 +654,8 @@
             "method": "POST",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "body": {
               "mode": "raw",
@@ -450,7 +667,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "perfil", "{{perfil_id}}", "estudios"]
             },
-            "description": "Crea un estudio académico dentro del perfil indicado. Todos los campos son **opcionales (nullable)**.\n\n**Campos disponibles:**\n- `NIVEL` (string, max 50, ej. \"Licenciatura\", \"Maestría\", \"Doctorado\")\n- `CARRERA` (string, max 150)\n- `INSTITUCION` (string, max 150)\n- `FECHA_INICIO` (date: YYYY-MM-DD)\n- `FECHA_FIN` (date: YYYY-MM-DD, debe ser igual o posterior a FECHA_INICIO)\n- `DOCUMENTO` (string, max 255, ruta o nombre del archivo)\n\nEl `PERFIL_ID` se toma del path automáticamente."
+            "description": "Crea un estudio académico dentro del perfil indicado.\n\n**Requiere módulo:** `estudios`\n\n**Campos OPCIONALES (nullable):**\n- `NIVEL` (string, max 50)\n- `CARRERA` (string, max 150)\n- `INSTITUCION` (string, max 150)\n- `FECHA_INICIO` (date: YYYY-MM-DD)\n- `FECHA_FIN` (date: YYYY-MM-DD)\n- `DOCUMENTO` (string, max 255)"
           }
         },
         {
@@ -458,14 +675,15 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/estudios/{{estudio_id}}",
               "host": ["{{base_url}}"],
               "path": ["api", "estudios", "{{estudio_id}}"]
             },
-            "description": "Devuelve un estudio específico por su ID."
+            "description": "Devuelve un estudio específico por su ID.\n\n**Requiere módulo:** `estudios`"
           }
         },
         {
@@ -474,7 +692,8 @@
             "method": "PUT",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "body": {
               "mode": "raw",
@@ -486,7 +705,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "estudios", "{{estudio_id}}"]
             },
-            "description": "Actualiza un estudio por su ID. Todos los campos son opcionales (nullable).\n\n**Campos disponibles:**\n- `NIVEL` (string, max 50)\n- `CARRERA` (string, max 150)\n- `INSTITUCION` (string, max 150)\n- `FECHA_INICIO` (date: YYYY-MM-DD)\n- `FECHA_FIN` (date: YYYY-MM-DD)\n- `DOCUMENTO` (string, max 255)"
+            "description": "Actualiza un estudio por su ID.\n\n**Requiere módulo:** `estudios`"
           }
         },
         {
@@ -494,35 +713,37 @@
           "request": {
             "method": "DELETE",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/estudios/{{estudio_id}}",
               "host": ["{{base_url}}"],
               "path": ["api", "estudios", "{{estudio_id}}"]
             },
-            "description": "Elimina el estudio por su ID."
+            "description": "Elimina el estudio por su ID.\n\n**Requiere módulo:** `estudios`\n\n**No disponible para rol `empleado`.**"
           }
         }
       ]
     },
     {
       "name": "Solicitud de Lentes",
-      "description": "Solicitudes de lentes para empleados y/o sus familiares.",
+      "description": "Solicitudes de lentes para empleados y/o sus familiares.\n\n**Requiere:** token con módulo `solicitud-lentes`.\n\n**Nota para empleados:** solo pueden ver, crear y editar sus propias solicitudes. No pueden eliminar.",
       "item": [
         {
           "name": "Listar todas las solicitudes de lentes",
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/solicitud-lentes",
               "host": ["{{base_url}}"],
               "path": ["api", "solicitud-lentes"]
             },
-            "description": "Devuelve todas las solicitudes de lentes con sus relaciones: empleado, familiar y plaza."
+            "description": "Devuelve todas las solicitudes de lentes con sus relaciones: empleado, familiar y plaza.\n\n**Requiere módulo:** `solicitud-lentes`"
           }
         },
         {
@@ -531,11 +752,12 @@
             "method": "POST",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"EMPLEADO_NO\": 1001,\n  \"PLAZA_ID\": 1,\n  \"FAMILIAR_ID\": null,\n  \"RECETA_ISTE_NUMERO\": \"REC-2024-001\",\n  \"RECETA_ISTE_ARCHIVO\": null,\n  \"ESTATUS\": \"Pendiente\",\n  \"OBSERVACIONES\": \"Solicitud para el empleado titular.\"\n}",
+              "raw": "{\n  \"EMPLEADO_NO\": 1001,\n  \"PLAZA_ID\": 1,\n  \"FAMILIAR_ID\": null,\n  \"RECETA_ISTE_NUMERO\": \"REC-2026-001\",\n  \"RECETA_ISTE_ARCHIVO\": null,\n  \"ESTATUS\": \"Pendiente\",\n  \"OBSERVACIONES\": \"Solicitud para el empleado titular.\"\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {
@@ -543,7 +765,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "solicitud-lentes"]
             },
-            "description": "Crea una nueva solicitud de lentes.\n\n**Campos REQUERIDOS:**\n- `EMPLEADO_NO` (integer, debe existir en la tabla empleados)\n\n**Campos OPCIONALES (nullable):**\n- `PLAZA_ID` (integer, debe existir en empleado_plazas)\n- `FAMILIAR_ID` (integer, debe existir en familiares — enviar null si es para el empleado titular)\n- `RECETA_ISTE_NUMERO` (string, max 100)\n- `RECETA_ISTE_ARCHIVO` (string, max 255, ruta del archivo de la receta)\n- `ESTATUS` (string, max 50, ej. \"Pendiente\", \"Aprobada\", \"Rechazada\")\n- `OBSERVACIONES` (string)"
+            "description": "Crea una nueva solicitud de lentes.\n\n**Requiere módulo:** `solicitud-lentes`\n\n**Campos REQUERIDOS:**\n- `EMPLEADO_NO` (integer)\n\n**Campos OPCIONALES (nullable):**\n- `PLAZA_ID` (integer)\n- `FAMILIAR_ID` (integer, null = solicitud para el titular)\n- `RECETA_ISTE_NUMERO` (string, max 100)\n- `RECETA_ISTE_ARCHIVO` (string, max 255)\n- `ESTATUS` (string, max 50)\n- `OBSERVACIONES` (string)"
           }
         },
         {
@@ -551,14 +773,15 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/solicitud-lentes/{{solicitud_id}}",
               "host": ["{{base_url}}"],
               "path": ["api", "solicitud-lentes", "{{solicitud_id}}"]
             },
-            "description": "Devuelve una solicitud de lentes con sus relaciones: empleado, familiar y plaza."
+            "description": "Devuelve una solicitud de lentes con sus relaciones: empleado, familiar y plaza.\n\n**Requiere módulo:** `solicitud-lentes`"
           }
         },
         {
@@ -567,11 +790,12 @@
             "method": "PUT",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"PLAZA_ID\": 1,\n  \"FAMILIAR_ID\": null,\n  \"RECETA_ISTE_NUMERO\": \"REC-2024-001\",\n  \"RECETA_ISTE_ARCHIVO\": null,\n  \"ESTATUS\": \"Aprobada\",\n  \"OBSERVACIONES\": \"Solicitud aprobada por el área de ISTE.\"\n}",
+              "raw": "{\n  \"PLAZA_ID\": 1,\n  \"FAMILIAR_ID\": null,\n  \"RECETA_ISTE_NUMERO\": \"REC-2026-001\",\n  \"RECETA_ISTE_ARCHIVO\": null,\n  \"ESTATUS\": \"Aprobada\",\n  \"OBSERVACIONES\": \"Solicitud aprobada por el área de ISTE.\"\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {
@@ -579,7 +803,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "solicitud-lentes", "{{solicitud_id}}"]
             },
-            "description": "Actualiza una solicitud de lentes existente. Todos los campos son opcionales.\n\n**Nota:** No se puede cambiar el `EMPLEADO_NO` desde este endpoint.\n\n**Campos disponibles:**\n- `PLAZA_ID` (integer, debe existir en empleado_plazas)\n- `FAMILIAR_ID` (integer, debe existir en familiares)\n- `RECETA_ISTE_NUMERO` (string, max 100)\n- `RECETA_ISTE_ARCHIVO` (string, max 255)\n- `ESTATUS` (string, max 50)\n- `OBSERVACIONES` (string)"
+            "description": "Actualiza una solicitud de lentes existente.\n\n**Requiere módulo:** `solicitud-lentes`"
           }
         },
         {
@@ -587,14 +811,15 @@
           "request": {
             "method": "DELETE",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/solicitud-lentes/{{solicitud_id}}",
               "host": ["{{base_url}}"],
               "path": ["api", "solicitud-lentes", "{{solicitud_id}}"]
             },
-            "description": "Elimina la solicitud de lentes por su ID."
+            "description": "Elimina la solicitud de lentes por su ID.\n\n**Requiere módulo:** `solicitud-lentes`\n\n**No disponible para rol `empleado`.**"
           }
         },
         {
@@ -602,28 +827,30 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/empleados/{{empleado_no}}/solicitud-lentes",
               "host": ["{{base_url}}"],
               "path": ["api", "empleados", "{{empleado_no}}", "solicitud-lentes"]
             },
-            "description": "Devuelve todas las solicitudes de lentes del empleado indicado, incluyendo las de sus familiares, con relaciones familiar y plaza."
+            "description": "Devuelve todas las solicitudes de lentes del empleado indicado, incluyendo las de sus familiares.\n\n**Requiere módulo:** `solicitud-lentes`"
           }
         }
       ]
     },
     {
       "name": "Lotes de Lentes",
-      "description": "Gestión de lotes de solicitudes de lentes por periodo.\n\nFlujo típico:\n1. `POST /lotes-lentes` — crea el lote y obtiene sugeridas del periodo\n2. `POST /lotes-lentes/{id}/solicitudes/{solicitudId}` — agrega solicitudes al lote\n3. `DELETE /lotes-lentes/{id}/solicitudes/{solicitudId}` — quita solicitudes no deseadas\n4. `PUT /lotes-lentes/{id}` con `ESTATUS: CERRADO` — cierra el lote\n\n**Estatus válidos:** ABIERTO → CERRADO → ENVIADO → CONCLUIDO",
+      "description": "Gestión de lotes de solicitudes de lentes por periodo.\n\n**Requiere:** token con módulo `lotes-lentes`.\n\n**Flujo típico:**\n1. `POST /lotes-lentes` — crea el lote y obtiene sugeridas del periodo\n2. `POST /lotes-lentes/{id}/solicitudes/{solicitudId}` — agrega solicitudes al lote\n3. `DELETE /lotes-lentes/{id}/solicitudes/{solicitudId}` — quita solicitudes no deseadas\n4. `PUT /lotes-lentes/{id}` con `ESTATUS: CERRADO` — cierra el lote\n\n**Estatus válidos:** ABIERTO → CERRADO → ENVIADO → CONCLUIDO",
       "item": [
         {
           "name": "Listar lotes",
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/lotes-lentes",
@@ -638,7 +865,7 @@
                 }
               ]
             },
-            "description": "Devuelve todos los lotes con conteo de solicitudes.\n\n**Query params opcionales:**\n- `estatus` (string): filtra por estatus del lote. Ej: `?estatus=ABIERTO`"
+            "description": "Devuelve todos los lotes con conteo de solicitudes.\n\n**Requiere módulo:** `lotes-lentes`\n\n**Query params opcionales:**\n- `estatus` (string): filtra por estatus del lote"
           }
         },
         {
@@ -647,7 +874,8 @@
             "method": "POST",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "body": {
               "mode": "raw",
@@ -659,7 +887,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "lotes-lentes"]
             },
-            "description": "Crea un nuevo lote con estatus `ABIERTO` y devuelve el lote creado junto con las solicitudes **PENDIENTES sin lote** que caen dentro del periodo indicado (`sugeridas`).\n\n**Campos REQUERIDOS:**\n- `NOMBRE` (string, max 150)\n- `FECHA_INICIO` (date: YYYY-MM-DD)\n- `FECHA_FIN` (date: YYYY-MM-DD, debe ser igual o posterior a FECHA_INICIO)\n\n**Campos OPCIONALES:**\n- `DESCRIPCION` (string)"
+            "description": "Crea un nuevo lote con estatus `ABIERTO` y devuelve las solicitudes PENDIENTES sin lote que caen dentro del periodo (`sugeridas`).\n\n**Requiere módulo:** `lotes-lentes`\n\n**Campos REQUERIDOS:**\n- `NOMBRE` (string, max 150)\n- `FECHA_INICIO` (date: YYYY-MM-DD)\n- `FECHA_FIN` (date: YYYY-MM-DD)\n\n**Campos OPCIONALES:**\n- `DESCRIPCION` (string)"
           }
         },
         {
@@ -667,14 +895,15 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/lotes-lentes/{{lote_id}}",
               "host": ["{{base_url}}"],
               "path": ["api", "lotes-lentes", "{{lote_id}}"]
             },
-            "description": "Devuelve el lote con todas sus solicitudes vinculadas, incluyendo relaciones de empleado, familiar y plaza por cada solicitud."
+            "description": "Devuelve el lote con todas sus solicitudes vinculadas.\n\n**Requiere módulo:** `lotes-lentes`"
           }
         },
         {
@@ -683,7 +912,8 @@
             "method": "PUT",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "body": {
               "mode": "raw",
@@ -695,7 +925,7 @@
               "host": ["{{base_url}}"],
               "path": ["api", "lotes-lentes", "{{lote_id}}"]
             },
-            "description": "Actualiza datos o cambia el estatus del lote. Todos los campos son opcionales.\n\n**Campos disponibles:**\n- `NOMBRE` (string, max 150)\n- `DESCRIPCION` (string, nullable)\n- `FECHA_INICIO` (date: YYYY-MM-DD)\n- `FECHA_FIN` (date: YYYY-MM-DD)\n- `ESTATUS` (string): `ABIERTO`, `CERRADO`, `ENVIADO` o `CONCLUIDO`"
+            "description": "Actualiza datos o cambia el estatus del lote.\n\n**Requiere módulo:** `lotes-lentes`\n\n**Estatus válidos:** `ABIERTO`, `CERRADO`, `ENVIADO`, `CONCLUIDO`"
           }
         },
         {
@@ -703,14 +933,15 @@
           "request": {
             "method": "DELETE",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/lotes-lentes/{{lote_id}}",
               "host": ["{{base_url}}"],
               "path": ["api", "lotes-lentes", "{{lote_id}}"]
             },
-            "description": "Elimina el lote. Las solicitudes vinculadas **no se eliminan**, solo se desvinculan (su `LOTE_ID` queda en null)."
+            "description": "Elimina el lote. Las solicitudes vinculadas no se eliminan, solo se desvinculan.\n\n**Requiere módulo:** `lotes-lentes`\n\n**No disponible para rol `empleado`.**"
           }
         },
         {
@@ -718,14 +949,15 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/lotes-lentes/{{lote_id}}/solicitudes/{{solicitud_id}}",
               "host": ["{{base_url}}"],
               "path": ["api", "lotes-lentes", "{{lote_id}}", "solicitudes", "{{solicitud_id}}"]
             },
-            "description": "Vincula una solicitud de lentes existente al lote. Devuelve la solicitud actualizada con sus relaciones.\n\nNo requiere body."
+            "description": "Vincula una solicitud de lentes existente al lote.\n\n**Requiere módulo:** `lotes-lentes`\n\nNo requiere body."
           }
         },
         {
@@ -733,14 +965,15 @@
           "request": {
             "method": "DELETE",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/lotes-lentes/{{lote_id}}/solicitudes/{{solicitud_id}}",
               "host": ["{{base_url}}"],
               "path": ["api", "lotes-lentes", "{{lote_id}}", "solicitudes", "{{solicitud_id}}"]
             },
-            "description": "Desvincula una solicitud del lote (no la elimina). La solicitud queda con `LOTE_ID = null`."
+            "description": "Desvincula una solicitud del lote (no la elimina).\n\n**Requiere módulo:** `lotes-lentes`"
           }
         },
         {
@@ -748,7 +981,8 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Accept", "value": "application/json" }
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "url": {
               "raw": "{{base_url}}/api/lotes-lentes/periodo?fecha_inicio=2026-01-01&fecha_fin=2026-01-31",
@@ -767,7 +1001,7 @@
                 }
               ]
             },
-            "description": "Devuelve las solicitudes con estatus **PENDIENTE** y sin lote asignado (`LOTE_ID = null`) creadas dentro del rango de fechas indicado.\n\nÚtil para preselección manual antes de crear un lote.\n\n**Query params REQUERIDOS:**\n- `fecha_inicio` (YYYY-MM-DD)\n- `fecha_fin` (YYYY-MM-DD)"
+            "description": "Devuelve las solicitudes PENDIENTES sin lote asignado dentro del rango de fechas.\n\n**Requiere módulo:** `lotes-lentes`\n\n**Query params REQUERIDOS:**\n- `fecha_inicio` (YYYY-MM-DD)\n- `fecha_fin` (YYYY-MM-DD)"
           }
         }
       ]
