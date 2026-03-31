@@ -70,7 +70,7 @@
   "item": [
     {
       "name": "Autenticación",
-      "description": "Endpoints de login, registro y gestión de sesión.\n\n**Flujo inicial:**\n1. Ejecuta **Login** con las credenciales del superadmin: `superadmin@sips.com` / `Admin@1234!`\n2. Copia el `token` de la respuesta y pégalo en la variable de colección `auth_token`\n3. Ya puedes usar el resto de los endpoints\n\n**Credenciales superadmin inicial:**\n- Email: `superadmin@sips.com`\n- Password: `Admin@1234!`",
+      "description": "Endpoints de login, registro y gestión de sesión.\n\n**Flujo inicial:**\n1. Ejecuta **Login** con las credenciales del superadmin: `superadmin@sips.com` / `Admin@1234!`\n2. Copia el `token` de la respuesta y pégalo en la variable de colección `auth_token`\n3. Ya puedes usar el resto de los endpoints\n\n**Credenciales superadmin inicial:**\n- Email: `superadmin@sips.com`\n- Password: `Admin@1234!`\n\n**Flujo para dar de alta un admin:**\n1. Ejecuta **Login** como superadmin y guarda el token.\n2. Llama **Módulos disponibles para admin (pre-alta)** para ver todos los permisos que puedes asignar.\n3. Ejecuta **Registro de superadmin o admin** incluyendo los módulos seleccionados en el campo `modules`.",
       "item": [
         {
           "name": "Login",
@@ -94,6 +94,44 @@
           }
         },
         {
+          "name": "Módulos disponibles para admin (pre-alta)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/available-modules",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "available-modules"]
+            },
+            "description": "Devuelve todos los módulos que se pueden asignar a un admin al momento de crearlo.\n\nLlamar este endpoint **antes** de `POST /auth/register` para mostrar las opciones disponibles al superadmin.\n\n**Requiere rol:** `superadmin`\n\nCada módulo incluye:\n- `name` — slug a usar en el campo `modules[]` al registrar el admin\n- `label` — nombre legible para mostrar en UI\n- `description` — descripción del módulo\n- `actions` — acciones que tendrá el admin sobre ese módulo: `ver`, `crear`, `editar`, `eliminar`"
+          },
+          "response": [
+            {
+              "name": "200 OK - Módulos disponibles",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"available_modules\": [\n    {\n      \"name\": \"empleados\",\n      \"label\": \"Empleados\",\n      \"description\": \"Gestión del catálogo de empleados\",\n      \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"]\n    },\n    {\n      \"name\": \"perfil\",\n      \"label\": \"Perfil Profesional\",\n      \"description\": \"Perfil y datos profesionales del empleado\",\n      \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"]\n    },\n    {\n      \"name\": \"familiares\",\n      \"label\": \"Familiares\",\n      \"description\": \"Gestión de familiares del empleado\",\n      \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"]\n    },\n    {\n      \"name\": \"plazas\",\n      \"label\": \"Plazas\",\n      \"description\": \"Plazas asignadas al empleado\",\n      \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"]\n    },\n    {\n      \"name\": \"estudios\",\n      \"label\": \"Estudios\",\n      \"description\": \"Estudios académicos del empleado\",\n      \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"]\n    },\n    {\n      \"name\": \"solicitud-lentes\",\n      \"label\": \"Solicitud de Lentes\",\n      \"description\": \"Solicitudes de lentes de los empleados\",\n      \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"]\n    },\n    {\n      \"name\": \"lotes-lentes\",\n      \"label\": \"Lotes de Lentes\",\n      \"description\": \"Gestión de lotes de lentes\",\n      \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"]\n    }\n  ]\n}",
+              "_postman_previewlanguage": "json",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/auth/available-modules",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "auth", "available-modules"]
+                }
+              }
+            }
+          ]
+        },
+        {
           "name": "Registro de superadmin o admin",
           "request": {
             "method": "POST",
@@ -112,8 +150,36 @@
               "host": ["{{base_url}}"],
               "path": ["api", "auth", "register"]
             },
-            "description": "Registra un nuevo usuario con rol `superadmin` o `admin`.\n\n**Solo accesible con token de `superadmin`.**\n\n**[REQUERIDO]**\n- `name` (string, max 255)\n- `email` (string, email único)\n- `password` (string, min 8)\n- `password_confirmation` (string, igual que password)\n- `role` (string): `superadmin` o `admin`\n\n**[OPCIONAL]**\n- `modules` (array de slugs): solo aplica cuando `role = admin`. Ej: `[\"empleados\", \"lotes-lentes\"]`\n\n**Módulos disponibles:** `empleados`, `perfil`, `familiares`, `plazas`, `estudios`, `solicitud-lentes`, `lotes-lentes`"
-          }
+            "description": "Registra un nuevo usuario con rol `superadmin` o `admin`.\n\n**Solo accesible con token de `superadmin`.**\n\n**Flujo recomendado:** llama primero `GET /auth/available-modules` para obtener la lista de módulos disponibles y mostrarlos como opciones.\n\n**[REQUERIDO]**\n- `name` (string, max 255)\n- `email` (string, email único)\n- `password` (string, min 8)\n- `password_confirmation` (string, igual que password)\n- `role` (string): `superadmin` o `admin`\n\n**[OPCIONAL]**\n- `modules` (array de slugs): solo aplica cuando `role = admin`. Ej: `[\"empleados\", \"lotes-lentes\"]`\n\n**Módulos disponibles:** `empleados`, `perfil`, `familiares`, `plazas`, `estudios`, `solicitud-lentes`, `lotes-lentes`\n\n**Respuesta (cuando role = admin):** incluye `available_modules` con el catálogo completo de módulos disponibles para referencia."
+          },
+          "response": [
+            {
+              "name": "201 Created - Admin registrado con módulos",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Usuario registrado correctamente.\",\n  \"user\": {\n    \"id\": 2,\n    \"name\": \"Administrador SIPS\",\n    \"email\": \"admin@sips.com\",\n    \"role\": \"admin\",\n    \"modules\": [\n      { \"slug\": \"empleados\", \"label\": \"Empleados\", \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"] },\n      { \"slug\": \"solicitud-lentes\", \"label\": \"Solicitud de Lentes\", \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"] },\n      { \"slug\": \"lotes-lentes\", \"label\": \"Lotes de Lentes\", \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"] }\n    ],\n    \"empleado\": null\n  },\n  \"available_modules\": [\n    { \"name\": \"empleados\", \"label\": \"Empleados\", \"description\": \"Gestión del catálogo de empleados\", \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"] },\n    { \"name\": \"perfil\", \"label\": \"Perfil Profesional\", \"description\": \"Perfil y datos profesionales del empleado\", \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"] },\n    { \"name\": \"familiares\", \"label\": \"Familiares\", \"description\": \"Gestión de familiares del empleado\", \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"] },\n    { \"name\": \"plazas\", \"label\": \"Plazas\", \"description\": \"Plazas asignadas al empleado\", \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"] },\n    { \"name\": \"estudios\", \"label\": \"Estudios\", \"description\": \"Estudios académicos del empleado\", \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"] },\n    { \"name\": \"solicitud-lentes\", \"label\": \"Solicitud de Lentes\", \"description\": \"Solicitudes de lentes de los empleados\", \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"] },\n    { \"name\": \"lotes-lentes\", \"label\": \"Lotes de Lentes\", \"description\": \"Gestión de lotes de lentes\", \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"] }\n  ]\n}",
+              "_postman_previewlanguage": "json",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Administrador SIPS\",\n  \"email\": \"admin@sips.com\",\n  \"password\": \"Admin@1234!\",\n  \"password_confirmation\": \"Admin@1234!\",\n  \"role\": \"admin\",\n  \"modules\": [\"empleados\", \"solicitud-lentes\", \"lotes-lentes\"]\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/auth/register",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "auth", "register"]
+                }
+              }
+            }
+          ]
         },
         {
           "name": "Registro de empleado",

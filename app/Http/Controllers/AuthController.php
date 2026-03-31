@@ -63,10 +63,26 @@ class AuthController extends Controller
             $user->modules()->sync($moduleIds);
         }
 
-        return response()->json([
+        $response = [
             'message' => 'Usuario registrado correctamente.',
             'user'    => $this->buildUserPayload($user),
-        ], 201);
+        ];
+
+        if ($request->role === 'admin') {
+            $response['available_modules'] = $this->buildAvailableModules();
+        }
+
+        return response()->json($response, 201);
+    }
+
+    /**
+     * Devuelve todos los módulos disponibles para asignar a un admin.
+     */
+    public function availableModules(): JsonResponse
+    {
+        return response()->json([
+            'available_modules' => $this->buildAvailableModules(),
+        ]);
     }
 
     /**
@@ -158,6 +174,20 @@ class AuthController extends Controller
             : null;
 
         return $payload;
+    }
+
+    /**
+     * Construye el catálogo de módulos disponibles para asignar a un admin.
+     */
+    private function buildAvailableModules(): array
+    {
+        return Module::all(['name', 'label', 'description'])
+            ->map(fn($m) => [
+                'name'        => $m->name,
+                'label'       => $m->label,
+                'description' => $m->description,
+                'actions'     => Module::ADMIN_ACTIONS,
+            ])->values()->toArray();
     }
 
     /**
