@@ -14,6 +14,7 @@ class SolicitudLentes extends Model
     const CREATED_AT = 'CREATED_AT';
 
     protected $fillable = [
+        'LOTE_ID',
         'EMPLEADO_NO',
         'PLAZA_ID',
         'FAMILIAR_ID',
@@ -24,11 +25,17 @@ class SolicitudLentes extends Model
     ];
 
     protected $casts = [
+        'LOTE_ID'     => 'integer',
         'EMPLEADO_NO' => 'integer',
         'PLAZA_ID'    => 'integer',
         'FAMILIAR_ID' => 'integer',
         'CREATED_AT'  => 'datetime',
     ];
+
+    public function lote(): BelongsTo
+    {
+        return $this->belongsTo(LoteLentes::class, 'LOTE_ID', 'ID');
+    }
 
     public function empleado(): BelongsTo
     {

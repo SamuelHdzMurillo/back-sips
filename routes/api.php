@@ -5,6 +5,7 @@ use App\Http\Controllers\EmpleadoPlazaController;
 use App\Http\Controllers\EstudioController;
 use App\Http\Controllers\FamiliarController;
 use App\Http\Controllers\PerfilProfesionalController;
+use App\Http\Controllers\LoteLentesController;
 use App\Http\Controllers\SolicitudLentesController;
 use Illuminate\Support\Facades\Route;
 
@@ -73,3 +74,17 @@ Route::get('/solicitud-lentes/{id}', [SolicitudLentesController::class, 'show'])
 Route::put('/solicitud-lentes/{id}', [SolicitudLentesController::class, 'update']);
 Route::delete('/solicitud-lentes/{id}', [SolicitudLentesController::class, 'destroy']);
 Route::get('/empleados/{no}/solicitud-lentes', [SolicitudLentesController::class, 'indexByEmpleado']);
+
+/*
+|--------------------------------------------------------------------------
+| Lotes Lentes
+|--------------------------------------------------------------------------
+*/
+Route::get('/lotes-lentes/periodo', [LoteLentesController::class, 'solicitudesByPeriodo']);
+Route::get('/lotes-lentes', [LoteLentesController::class, 'index']);
+Route::post('/lotes-lentes', [LoteLentesController::class, 'store']);
+Route::get('/lotes-lentes/{id}', [LoteLentesController::class, 'show']);
+Route::put('/lotes-lentes/{id}', [LoteLentesController::class, 'update']);
+Route::delete('/lotes-lentes/{id}', [LoteLentesController::class, 'destroy']);
+Route::post('/lotes-lentes/{id}/solicitudes/{solicitudId}', [LoteLentesController::class, 'addSolicitud']);
+Route::delete('/lotes-lentes/{id}/solicitudes/{solicitudId}', [LoteLentesController::class, 'removeSolicitud']);

@@ -47,6 +47,12 @@
       "value": "1",
       "type": "string",
       "description": "ID de la solicitud de lentes"
+    },
+    {
+      "key": "lote_id",
+      "value": "1",
+      "type": "string",
+      "description": "ID del lote de lentes"
     }
   ],
   "item": [
@@ -604,6 +610,164 @@
               "path": ["api", "empleados", "{{empleado_no}}", "solicitud-lentes"]
             },
             "description": "Devuelve todas las solicitudes de lentes del empleado indicado, incluyendo las de sus familiares, con relaciones familiar y plaza."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Lotes de Lentes",
+      "description": "Gestión de lotes de solicitudes de lentes por periodo.\n\nFlujo típico:\n1. `POST /lotes-lentes` — crea el lote y obtiene sugeridas del periodo\n2. `POST /lotes-lentes/{id}/solicitudes/{solicitudId}` — agrega solicitudes al lote\n3. `DELETE /lotes-lentes/{id}/solicitudes/{solicitudId}` — quita solicitudes no deseadas\n4. `PUT /lotes-lentes/{id}` con `ESTATUS: CERRADO` — cierra el lote\n\n**Estatus válidos:** ABIERTO → CERRADO → ENVIADO → CONCLUIDO",
+      "item": [
+        {
+          "name": "Listar lotes",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/lotes-lentes",
+              "host": ["{{base_url}}"],
+              "path": ["api", "lotes-lentes"],
+              "query": [
+                {
+                  "key": "estatus",
+                  "value": "ABIERTO",
+                  "description": "Filtra por estatus: ABIERTO, CERRADO, ENVIADO, CONCLUIDO",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Devuelve todos los lotes con conteo de solicitudes.\n\n**Query params opcionales:**\n- `estatus` (string): filtra por estatus del lote. Ej: `?estatus=ABIERTO`"
+          }
+        },
+        {
+          "name": "Crear lote (con sugeridas del periodo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"NOMBRE\": \"Lote Enero 2026\",\n  \"DESCRIPCION\": \"Solicitudes del primer bimestre 2026\",\n  \"FECHA_INICIO\": \"2026-01-01\",\n  \"FECHA_FIN\": \"2026-01-31\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/lotes-lentes",
+              "host": ["{{base_url}}"],
+              "path": ["api", "lotes-lentes"]
+            },
+            "description": "Crea un nuevo lote con estatus `ABIERTO` y devuelve el lote creado junto con las solicitudes **PENDIENTES sin lote** que caen dentro del periodo indicado (`sugeridas`).\n\n**Campos REQUERIDOS:**\n- `NOMBRE` (string, max 150)\n- `FECHA_INICIO` (date: YYYY-MM-DD)\n- `FECHA_FIN` (date: YYYY-MM-DD, debe ser igual o posterior a FECHA_INICIO)\n\n**Campos OPCIONALES:**\n- `DESCRIPCION` (string)"
+          }
+        },
+        {
+          "name": "Ver detalle del lote",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/lotes-lentes/{{lote_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "lotes-lentes", "{{lote_id}}"]
+            },
+            "description": "Devuelve el lote con todas sus solicitudes vinculadas, incluyendo relaciones de empleado, familiar y plaza por cada solicitud."
+          }
+        },
+        {
+          "name": "Actualizar lote / cambiar estatus",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"NOMBRE\": \"Lote Enero 2026 (revisado)\",\n  \"DESCRIPCION\": \"Descripción actualizada\",\n  \"FECHA_INICIO\": \"2026-01-01\",\n  \"FECHA_FIN\": \"2026-01-31\",\n  \"ESTATUS\": \"CERRADO\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/lotes-lentes/{{lote_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "lotes-lentes", "{{lote_id}}"]
+            },
+            "description": "Actualiza datos o cambia el estatus del lote. Todos los campos son opcionales.\n\n**Campos disponibles:**\n- `NOMBRE` (string, max 150)\n- `DESCRIPCION` (string, nullable)\n- `FECHA_INICIO` (date: YYYY-MM-DD)\n- `FECHA_FIN` (date: YYYY-MM-DD)\n- `ESTATUS` (string): `ABIERTO`, `CERRADO`, `ENVIADO` o `CONCLUIDO`"
+          }
+        },
+        {
+          "name": "Eliminar lote",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/lotes-lentes/{{lote_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "lotes-lentes", "{{lote_id}}"]
+            },
+            "description": "Elimina el lote. Las solicitudes vinculadas **no se eliminan**, solo se desvinculan (su `LOTE_ID` queda en null)."
+          }
+        },
+        {
+          "name": "Agregar solicitud al lote",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/lotes-lentes/{{lote_id}}/solicitudes/{{solicitud_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "lotes-lentes", "{{lote_id}}", "solicitudes", "{{solicitud_id}}"]
+            },
+            "description": "Vincula una solicitud de lentes existente al lote. Devuelve la solicitud actualizada con sus relaciones.\n\nNo requiere body."
+          }
+        },
+        {
+          "name": "Quitar solicitud del lote",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/lotes-lentes/{{lote_id}}/solicitudes/{{solicitud_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "lotes-lentes", "{{lote_id}}", "solicitudes", "{{solicitud_id}}"]
+            },
+            "description": "Desvincula una solicitud del lote (no la elimina). La solicitud queda con `LOTE_ID = null`."
+          }
+        },
+        {
+          "name": "Consultar solicitudes PENDIENTES por periodo",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/lotes-lentes/periodo?fecha_inicio=2026-01-01&fecha_fin=2026-01-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "lotes-lentes", "periodo"],
+              "query": [
+                {
+                  "key": "fecha_inicio",
+                  "value": "2026-01-01",
+                  "description": "[REQUERIDO] Fecha inicio del periodo (YYYY-MM-DD)"
+                },
+                {
+                  "key": "fecha_fin",
+                  "value": "2026-01-31",
+                  "description": "[REQUERIDO] Fecha fin del periodo (YYYY-MM-DD)"
+                }
+              ]
+            },
+            "description": "Devuelve las solicitudes con estatus **PENDIENTE** y sin lote asignado (`LOTE_ID = null`) creadas dentro del rango de fechas indicado.\n\nÚtil para preselección manual antes de crear un lote.\n\n**Query params REQUERIDOS:**\n- `fecha_inicio` (YYYY-MM-DD)\n- `fecha_fin` (YYYY-MM-DD)"
           }
         }
       ]
