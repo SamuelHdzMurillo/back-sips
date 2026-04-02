@@ -123,6 +123,8 @@ class AuthController extends Controller
             'empleado_no' => $empleado->EMPLEADO_NO,
         ]);
 
+        $empleado->update(['EMPLEADO_CORREO_ELECTRONICO' => $request->email]);
+
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([
