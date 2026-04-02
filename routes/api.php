@@ -47,6 +47,10 @@ Route::prefix('modules')->middleware(['auth:sanctum', 'role:superadmin'])->group
 | Empleados
 |--------------------------------------------------------------------------
 */
+
+// Ruta exclusiva para que el empleado autenticado vea su propia información
+Route::middleware('auth:sanctum')->get('/empleados/me', [EmpleadoController::class, 'showMe']);
+
 Route::middleware(['auth:sanctum', 'module:empleados'])->group(function () {
     Route::get('/empleados', [EmpleadoController::class, 'index']);
     Route::post('/empleados', [EmpleadoController::class, 'store']);

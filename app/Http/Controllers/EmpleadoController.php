@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Empleado;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
@@ -14,6 +15,19 @@ class EmpleadoController extends Controller
     {
         $empleados = Empleado::all();
         return response()->json($empleados);
+    }
+
+    public function showMe(): JsonResponse
+    {
+        $user = Auth::user();
+
+        if (!$user->empleado_no) {
+            return response()->json(['message' => 'Tu cuenta no está vinculada a ningún empleado.'], 404);
+        }
+
+        $empleado = Empleado::with(['perfil.estudios', 'familiares', 'plazas'])->findOrFail($user->empleado_no);
+
+        return response()->json($empleado);
     }
 
     public function store(Request $request): JsonResponse

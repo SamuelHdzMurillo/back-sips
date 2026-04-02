@@ -13,6 +13,7 @@ class Module extends Model
      * Módulos que el rol empleado puede acceder (siempre fijos, sin asignación).
      */
     const EMPLEADO_MODULES = [
+        'empleados',
         'solicitud-lentes',
         'estudios',
         'familiares',
@@ -24,6 +25,7 @@ class Module extends Model
      * Acciones permitidas por módulo para el rol empleado.
      */
     const EMPLEADO_ACTIONS = [
+        'empleados'        => ['ver'],
         'solicitud-lentes' => ['ver', 'crear', 'editar'],
         'estudios'         => ['ver', 'crear', 'editar'],
         'familiares'       => ['ver', 'crear', 'editar'],
