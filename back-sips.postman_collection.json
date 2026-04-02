@@ -500,7 +500,7 @@
     },
     {
       "name": "Familiares",
-      "description": "Familiares de los empleados (hijos, cónyuge, etc.).\n\n**Requiere:** token con módulo `familiares`.\n\n**Nota para empleados:** solo pueden ver, crear y editar sus propios familiares. No pueden eliminar.",
+      "description": "Familiares de los empleados (hijos, cónyuge, etc.).\n\n**Requiere:** token con módulo `familiares`.\n\n**Nota para empleados:** solo pueden ver, crear y editar sus propios familiares. No pueden eliminar.\n\n**Subida de documentos:**\nEl campo `DOCUMENTO_PARENTESCO` acepta un archivo (PDF, JPG, JPEG, PNG, máx 5 MB) mediante `multipart/form-data`. La URL pública resultante tiene el formato:\n`http://localhost/back-sips/public/storage/documentos-parentesco/{nombre_archivo}`\n\nAl actualizar, si se envía un nuevo archivo el anterior se elimina automáticamente del disco.",
       "item": [
         {
           "name": "Listar familiares del empleado",
@@ -524,20 +524,56 @@
             "method": "POST",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
               { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"NOMBRE\": \"María\",\n  \"APELLIDO_PATERNO\": \"García\",\n  \"APELLIDO_MATERNO\": \"Pérez\",\n  \"PARENTESCO\": \"Hija\",\n  \"DOCUMENTO_PARENTESCO\": null\n}",
-              "options": { "raw": { "language": "json" } }
+              "mode": "formdata",
+              "formdata": [
+                { "key": "NOMBRE",           "value": "María",   "type": "text", "description": "[REQUERIDO] string max 100" },
+                { "key": "APELLIDO_PATERNO", "value": "García",  "type": "text", "description": "[REQUERIDO] string max 100" },
+                { "key": "APELLIDO_MATERNO", "value": "Pérez",   "type": "text", "description": "[REQUERIDO] string max 100" },
+                { "key": "PARENTESCO",       "value": "Hija",    "type": "text", "description": "[REQUERIDO] string max 50" },
+                { "key": "DOCUMENTO_PARENTESCO", "type": "file", "description": "[OPCIONAL] Archivo PDF, JPG, JPEG o PNG. Máx 5 MB. La URL pública se guarda en BD.", "disabled": true }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/api/empleados/{{empleado_no}}/familiares",
               "host": ["{{base_url}}"],
               "path": ["api", "empleados", "{{empleado_no}}", "familiares"]
             },
-            "description": "Crea un familiar para el empleado indicado.\n\n**Requiere módulo:** `familiares`\n\n**Campos REQUERIDOS:**\n- `NOMBRE` (string, max 100)\n- `APELLIDO_PATERNO` (string, max 100)\n- `APELLIDO_MATERNO` (string, max 100)\n- `PARENTESCO` (string, max 50)\n\n**Campos OPCIONALES (nullable):**\n- `DOCUMENTO_PARENTESCO` (string, max 255)\n\nEl `EMPLEADO_NO` se toma del path automáticamente."
+            "description": "Crea un familiar para el empleado indicado.\n\n**Content-Type:** `multipart/form-data` (necesario para subir el archivo).\n\n**Requiere módulo:** `familiares`\n\n**Campos REQUERIDOS:**\n- `NOMBRE` (string, max 100)\n- `APELLIDO_PATERNO` (string, max 100)\n- `APELLIDO_MATERNO` (string, max 100)\n- `PARENTESCO` (string, max 50)\n\n**Campos OPCIONALES:**\n- `DOCUMENTO_PARENTESCO` (file): PDF, JPG, JPEG o PNG, máx 5 MB. El archivo se almacena en `storage/app/public/documentos-parentesco/` y en BD se guarda la URL pública completa:\n  `http://localhost/back-sips/public/storage/documentos-parentesco/{nombre_archivo}`\n\nEl `EMPLEADO_NO` se toma del path automáticamente.",
+            "response": [
+              {
+                "name": "201 Created - Familiar con documento",
+                "status": "Created",
+                "code": 201,
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": "{\n  \"ID\": 1,\n  \"EMPLEADO_NO\": 1001,\n  \"NOMBRE\": \"María\",\n  \"APELLIDO_PATERNO\": \"García\",\n  \"APELLIDO_MATERNO\": \"Pérez\",\n  \"PARENTESCO\": \"Hija\",\n  \"DOCUMENTO_PARENTESCO\": \"http://localhost/back-sips/public/storage/documentos-parentesco/y2AYCYNDAc1AZCD56CFsBKjTIn0Ru90V6Qm5IEPn.pdf\"\n}",
+                "_postman_previewlanguage": "json",
+                "originalRequest": {
+                  "method": "POST",
+                  "header": [
+                    { "key": "Accept", "value": "application/json" },
+                    { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+                  ],
+                  "body": {
+                    "mode": "formdata",
+                    "formdata": [
+                      { "key": "NOMBRE",           "value": "María",  "type": "text" },
+                      { "key": "APELLIDO_PATERNO", "value": "García", "type": "text" },
+                      { "key": "APELLIDO_MATERNO", "value": "Pérez",  "type": "text" },
+                      { "key": "PARENTESCO",       "value": "Hija",   "type": "text" },
+                      { "key": "DOCUMENTO_PARENTESCO", "type": "file" }
+                    ]
+                  },
+                  "url": {
+                    "raw": "{{base_url}}/api/empleados/{{empleado_no}}/familiares",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "empleados", "{{empleado_no}}", "familiares"]
+                  }
+                }
+              }
+            ]
           }
         },
         {
@@ -559,23 +595,61 @@
         {
           "name": "Actualizar familiar",
           "request": {
-            "method": "PUT",
+            "method": "POST",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
               { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"NOMBRE\": \"María Elena\",\n  \"APELLIDO_PATERNO\": \"García\",\n  \"APELLIDO_MATERNO\": \"Pérez\",\n  \"PARENTESCO\": \"Hija\",\n  \"DOCUMENTO_PARENTESCO\": null\n}",
-              "options": { "raw": { "language": "json" } }
+              "mode": "formdata",
+              "formdata": [
+                { "key": "_method",          "value": "PUT",        "type": "text", "description": "Spoofing de método HTTP para PUT con multipart/form-data" },
+                { "key": "NOMBRE",           "value": "María Elena","type": "text", "description": "[OPCIONAL] string max 100" },
+                { "key": "APELLIDO_PATERNO", "value": "García",     "type": "text", "description": "[OPCIONAL] string max 100" },
+                { "key": "APELLIDO_MATERNO", "value": "Pérez",      "type": "text", "description": "[OPCIONAL] string max 100" },
+                { "key": "PARENTESCO",       "value": "Hija",       "type": "text", "description": "[OPCIONAL] string max 50" },
+                { "key": "DOCUMENTO_PARENTESCO", "type": "file", "description": "[OPCIONAL] Nuevo archivo PDF, JPG, JPEG o PNG. Máx 5 MB. Reemplaza el archivo anterior.", "disabled": true }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/api/familiares/{{familiar_id}}",
               "host": ["{{base_url}}"],
               "path": ["api", "familiares", "{{familiar_id}}"]
             },
-            "description": "Actualiza un familiar. Todos los campos son opcionales (`sometimes`).\n\n**Requiere módulo:** `familiares`"
+            "description": "Actualiza un familiar. Todos los campos son opcionales (`sometimes`).\n\n**Content-Type:** `multipart/form-data`. Se usa `POST` con el campo oculto `_method=PUT` (Laravel method spoofing) porque los navegadores/Postman no soportan `PUT` con archivos.\n\n**Requiere módulo:** `familiares`\n\n**Campos OPCIONALES:**\n- `NOMBRE`, `APELLIDO_PATERNO`, `APELLIDO_MATERNO`, `PARENTESCO`\n- `DOCUMENTO_PARENTESCO` (file): si se envía un nuevo archivo, el anterior se elimina del disco automáticamente y en BD se guarda la nueva URL:\n  `http://localhost/back-sips/public/storage/documentos-parentesco/{nombre_archivo}`",
+            "response": [
+              {
+                "name": "200 OK - Familiar actualizado con nuevo documento",
+                "status": "OK",
+                "code": 200,
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": "{\n  \"ID\": 1,\n  \"EMPLEADO_NO\": 1001,\n  \"NOMBRE\": \"María Elena\",\n  \"APELLIDO_PATERNO\": \"García\",\n  \"APELLIDO_MATERNO\": \"Pérez\",\n  \"PARENTESCO\": \"Hija\",\n  \"DOCUMENTO_PARENTESCO\": \"http://localhost/back-sips/public/storage/documentos-parentesco/VTUSk6kaz7nPGvNKOJs1mIs2Zq8Ze56ZgMSmybH9.png\"\n}",
+                "_postman_previewlanguage": "json",
+                "originalRequest": {
+                  "method": "POST",
+                  "header": [
+                    { "key": "Accept", "value": "application/json" },
+                    { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+                  ],
+                  "body": {
+                    "mode": "formdata",
+                    "formdata": [
+                      { "key": "_method",          "value": "PUT",        "type": "text" },
+                      { "key": "NOMBRE",           "value": "María Elena","type": "text" },
+                      { "key": "APELLIDO_PATERNO", "value": "García",     "type": "text" },
+                      { "key": "APELLIDO_MATERNO", "value": "Pérez",      "type": "text" },
+                      { "key": "PARENTESCO",       "value": "Hija",       "type": "text" },
+                      { "key": "DOCUMENTO_PARENTESCO", "type": "file" }
+                    ]
+                  },
+                  "url": {
+                    "raw": "{{base_url}}/api/familiares/{{familiar_id}}",
+                    "host": ["{{base_url}}"],
+                    "path": ["api", "familiares", "{{familiar_id}}"]
+                  }
+                }
+              }
+            ]
           }
         },
         {
