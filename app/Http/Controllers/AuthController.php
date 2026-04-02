@@ -135,6 +135,40 @@ class AuthController extends Controller
     }
 
     /**
+     * Elimina la cuenta de acceso de un empleado (usuario + tokens) sin borrar sus datos registrados,
+     * permitiéndole volver a registrarse desde cero.
+     * Solo accesible para superadmin y admin.
+     */
+    public function resetAccesoEmpleado(int $no): JsonResponse
+    {
+        $empleado = Empleado::where('EMPLEADO_NO', $no)->first();
+
+        if (!$empleado) {
+            return response()->json([
+                'message' => 'No se encontró ningún empleado con ese número.',
+            ], 404);
+        }
+
+        $user = User::where('empleado_no', $no)->first();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'Este empleado no tiene una cuenta de acceso registrada.',
+            ], 404);
+        }
+
+        $nombre = $user->name;
+        $user->tokens()->delete();
+        $user->delete();
+
+        return response()->json([
+            'message'     => 'Cuenta de acceso eliminada. El empleado puede volver a registrarse.',
+            'empleado_no' => $no,
+            'nombre'      => $nombre,
+        ]);
+    }
+
+    /**
      * Retorna el usuario autenticado con su rol y módulos.
      */
     public function me(Request $request): JsonResponse

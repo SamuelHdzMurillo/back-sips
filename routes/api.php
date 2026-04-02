@@ -27,6 +27,8 @@ Route::prefix('auth')->group(function () {
             ->middleware('role:superadmin');
         Route::post('/register', [AuthController::class, 'register'])
             ->middleware('role:superadmin');
+        Route::post('/empleados/{no}/reset-acceso', [AuthController::class, 'resetAccesoEmpleado'])
+            ->middleware('role:superadmin,admin');
     });
 });
 
