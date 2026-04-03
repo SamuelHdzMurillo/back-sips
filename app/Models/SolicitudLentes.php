@@ -20,6 +20,8 @@ class SolicitudLentes extends Model
         'FAMILIAR_ID',
         'RECETA_ISTE_NUMERO',
         'RECETA_ISTE_ARCHIVO',
+        'OPTICA_NOMBRE',
+        'FACTURA_COMPRA_ARCHIVO',
         'ESTATUS',
         'OBSERVACIONES',
     ];
