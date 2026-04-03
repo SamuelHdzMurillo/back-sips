@@ -770,7 +770,7 @@
     },
     {
       "name": "Estudios",
-      "description": "Estudios académicos dentro del perfil profesional.\n\n**Requiere:** token con módulo `estudios`.\n\n**Nota para empleados:** solo pueden ver, crear y editar sus propios estudios. No pueden eliminar.",
+      "description": "Estudios académicos dentro del perfil profesional.\n\n**Requiere:** token con módulo `estudios`.\n\n**Nota para empleados:** solo pueden ver, crear y editar sus propios estudios. No pueden eliminar.\n\n**Subida de documentos:**\nEl campo `DOCUMENTO` acepta un archivo (PDF, JPG, JPEG, PNG, WEBP, máx 5 MB) mediante `multipart/form-data`. La URL pública resultante tiene el formato:\n`http://localhost/back-sips/public/storage/documentos-estudios/{nombre_archivo}`\n\nAl actualizar, si se envía un nuevo archivo el anterior se elimina automáticamente del disco.",
       "item": [
         {
           "name": "Listar estudios del perfil",
@@ -794,20 +794,25 @@
             "method": "POST",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
               { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"NIVEL\": \"Licenciatura\",\n  \"CARRERA\": \"Ingeniería en Sistemas Computacionales\",\n  \"INSTITUCION\": \"Instituto Tecnológico de México\",\n  \"FECHA_INICIO\": \"2010-08-01\",\n  \"FECHA_FIN\": \"2015-06-30\",\n  \"DOCUMENTO\": null\n}",
-              "options": { "raw": { "language": "json" } }
+              "mode": "formdata",
+              "formdata": [
+                { "key": "NIVEL", "value": "Licenciatura", "type": "text", "description": "[OPCIONAL] string max 50" },
+                { "key": "CARRERA", "value": "Ingeniería en Sistemas Computacionales", "type": "text", "description": "[OPCIONAL] string max 150" },
+                { "key": "INSTITUCION", "value": "Instituto Tecnológico de México", "type": "text", "description": "[OPCIONAL] string max 150" },
+                { "key": "FECHA_INICIO", "value": "2010-08-01", "type": "text", "description": "[OPCIONAL] date YYYY-MM-DD" },
+                { "key": "FECHA_FIN", "value": "2015-06-30", "type": "text", "description": "[OPCIONAL] date YYYY-MM-DD" },
+                { "key": "DOCUMENTO", "type": "file", "description": "[OPCIONAL] Archivo PDF, JPG, JPEG, PNG o WEBP. Máx 5 MB. La URL pública se guarda en BD.", "disabled": true }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/api/perfil/{{perfil_id}}/estudios",
               "host": ["{{base_url}}"],
               "path": ["api", "perfil", "{{perfil_id}}", "estudios"]
             },
-            "description": "Crea un estudio académico dentro del perfil indicado.\n\n**Requiere módulo:** `estudios`\n\n**Campos OPCIONALES (nullable):**\n- `NIVEL` (string, max 50)\n- `CARRERA` (string, max 150)\n- `INSTITUCION` (string, max 150)\n- `FECHA_INICIO` (date: YYYY-MM-DD)\n- `FECHA_FIN` (date: YYYY-MM-DD)\n- `DOCUMENTO` (string, max 255)"
+            "description": "Crea un estudio académico dentro del perfil indicado.\n\n**Content-Type:** `multipart/form-data` (necesario para subir el archivo; también sirve solo con campos de texto).\n\n**Requiere módulo:** `estudios`\n\n**Campos OPCIONALES (nullable):**\n- `NIVEL` (string, max 50)\n- `CARRERA` (string, max 150)\n- `INSTITUCION` (string, max 150)\n- `FECHA_INICIO` (date: YYYY-MM-DD)\n- `FECHA_FIN` (date: YYYY-MM-DD)\n- `DOCUMENTO` (file): PDF, JPG, JPEG, PNG o WEBP, máx 5 MB. El archivo se almacena en `storage/app/public/documentos-estudios/` y en BD se guarda la URL pública completa:\n  `http://localhost/back-sips/public/storage/documentos-estudios/{nombre_archivo}`\n\nEl `PERFIL_ID` se toma del path automáticamente."
           }
         },
         {
@@ -829,23 +834,29 @@
         {
           "name": "Actualizar estudio",
           "request": {
-            "method": "PUT",
+            "method": "POST",
             "header": [
               { "key": "Accept", "value": "application/json" },
-              { "key": "Content-Type", "value": "application/json" },
               { "key": "Authorization", "value": "Bearer {{auth_token}}" }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"NIVEL\": \"Maestría\",\n  \"CARRERA\": \"Maestría en Tecnologías de la Información\",\n  \"INSTITUCION\": \"Instituto Tecnológico de México\",\n  \"FECHA_INICIO\": \"2016-01-01\",\n  \"FECHA_FIN\": \"2018-06-30\",\n  \"DOCUMENTO\": null\n}",
-              "options": { "raw": { "language": "json" } }
+              "mode": "formdata",
+              "formdata": [
+                { "key": "_method", "value": "PUT", "type": "text", "description": "Spoofing de método HTTP para PUT con multipart/form-data" },
+                { "key": "NIVEL", "value": "Maestría", "type": "text", "description": "[OPCIONAL] string max 50" },
+                { "key": "CARRERA", "value": "Maestría en Tecnologías de la Información", "type": "text", "description": "[OPCIONAL] string max 150" },
+                { "key": "INSTITUCION", "value": "Instituto Tecnológico de México", "type": "text", "description": "[OPCIONAL] string max 150" },
+                { "key": "FECHA_INICIO", "value": "2016-01-01", "type": "text", "description": "[OPCIONAL] date YYYY-MM-DD" },
+                { "key": "FECHA_FIN", "value": "2018-06-30", "type": "text", "description": "[OPCIONAL] date YYYY-MM-DD" },
+                { "key": "DOCUMENTO", "type": "file", "description": "[OPCIONAL] Nuevo archivo; el anterior se elimina del disco.", "disabled": true }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/api/estudios/{{estudio_id}}",
               "host": ["{{base_url}}"],
               "path": ["api", "estudios", "{{estudio_id}}"]
             },
-            "description": "Actualiza un estudio por su ID.\n\n**Requiere módulo:** `estudios`"
+            "description": "Actualiza un estudio por su ID.\n\n**Content-Type:** `multipart/form-data`. Se usa `POST` con el campo `_method=PUT` (Laravel method spoofing) porque `PUT` con archivos no rellena `$_FILES` de forma fiable.\n\n**Requiere módulo:** `estudios`\n\nSi envías un nuevo `DOCUMENTO` (archivo), el archivo anterior se elimina del disco."
           }
         },
         {
