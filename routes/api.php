@@ -9,6 +9,7 @@ use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\PerfilProfesionalController;
 use App\Http\Controllers\LoteLentesController;
 use App\Http\Controllers\SolicitudLentesController;
+use App\Http\Controllers\AuditLogController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -31,6 +32,14 @@ Route::prefix('auth')->group(function () {
             ->middleware('role:superadmin,admin');
     });
 });
+
+/*
+|--------------------------------------------------------------------------
+| Auditoría del sistema (solo superadmin)
+|--------------------------------------------------------------------------
+*/
+Route::get('/audit-logs', [AuditLogController::class, 'index'])
+    ->middleware(['auth:sanctum', 'role:superadmin']);
 
 /*
 |--------------------------------------------------------------------------

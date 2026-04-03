@@ -2,7 +2,7 @@
   "info": {
     "name": "Back SIPS - API",
     "_postman_id": "back-sips-api-collection",
-    "description": "Colección completa de rutas para la API REST de Back SIPS (Laravel 10).\n\nBase URL configurada en la variable {{base_url}}.\n\n**Autenticación:**\nTodas las rutas (excepto login y register-empleado) requieren el header:\n`Authorization: Bearer {{auth_token}}`\n\nEjecuta primero **Login** y copia el token a la variable `auth_token`.\n\n**Leyenda en los bodies:**\n- [REQUERIDO] = campo obligatorio\n- [OPCIONAL] = nullable, se puede omitir o enviar null\n\n**Roles disponibles:** `superadmin`, `admin`, `empleado`",
+    "description": "Colección completa de rutas para la API REST de Back SIPS (Laravel 10).\n\nBase URL configurada en la variable {{base_url}}.\n\n**Autenticación:**\nTodas las rutas (excepto login y register-empleado) requieren el header:\n`Authorization: Bearer {{auth_token}}`\n\nEjecuta primero **Login** y copia el token a la variable `auth_token`.\n\n**Auditoría:**\nCada petición a la API queda registrada en base de datos (usuario, ruta, método, código HTTP, payload sanitizado). Para **consultar** el historial usa **Auditoría → Listar logs de auditoría** (solo `superadmin`).\n\n**Leyenda en los bodies:**\n- [REQUERIDO] = campo obligatorio\n- [OPCIONAL] = nullable, se puede omitir o enviar null\n\n**Roles disponibles:** `superadmin`, `admin`, `empleado`",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -233,6 +233,81 @@
             },
             "description": "Revoca el token actual. El token deja de ser válido inmediatamente.\n\nNo requiere body."
           }
+        },
+        {
+          "name": "Reset acceso empleado (eliminar cuenta)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/empleados/{{empleado_no}}/reset-acceso",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "empleados", "{{empleado_no}}", "reset-acceso"]
+            },
+            "description": "Elimina la cuenta de usuario vinculada al empleado (`users` donde `empleado_no` coincide) y revoca todos sus tokens. El empleado podrá volver a registrarse con **Registro de empleado**.\n\n**Requiere rol:** `superadmin` o `admin`\n\n**Path:** `empleado_no` = `EMPLEADO_NO` del empleado.\n\nNo requiere body."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auditoría",
+      "description": "Consulta del registro de actividad de la API (quién hizo qué, método, ruta, código HTTP, payload sanitizado).\n\n**Solo accesible con token de `superadmin`.**\n\nLas peticiones quedan registradas automáticamente. Los campos sensibles (contraseñas, tokens) se almacenan como `[REDACTED]`.",
+      "item": [
+        {
+          "name": "Listar logs de auditoría",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/audit-logs?per_page=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "audit-logs"],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "50",
+                  "description": "Registros por página (máx. 100). Default 50."
+                },
+                {
+                  "key": "user_id",
+                  "value": "",
+                  "description": "Filtrar por ID de usuario",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "description": "Fecha desde (YYYY-MM-DD)",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "description": "Fecha hasta (YYYY-MM-DD)",
+                  "disabled": true
+                },
+                {
+                  "key": "path",
+                  "value": "",
+                  "description": "Contiene en path (ej. solicitud-lentes)",
+                  "disabled": true
+                },
+                {
+                  "key": "method",
+                  "value": "",
+                  "description": "GET, POST, PUT, DELETE…",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Respuesta paginada de Laravel (`data`, `links`, `meta`). Cada registro incluye: `user_id`, `user_email`, `user_name`, `user_role`, `empleado_no`, `method`, `path`, `route_name`, `action`, `ip_address`, `user_agent`, `status_code`, `payload_json`, `created_at`.\n\n**Requiere rol:** `superadmin`\n\n**Query opcionales:**\n- `user_id` — filtrar por usuario\n- `from` / `to` — rango de fechas\n- `path` — búsqueda parcial en la ruta\n- `method` — método HTTP\n- `per_page` — tamaño de página (máx. 100)"
+          }
         }
       ]
     },
@@ -320,8 +395,24 @@
     },
     {
       "name": "Empleados",
-      "description": "CRUD completo de empleados.\n\n**Requiere:** token con módulo `empleados`.\n\nCampos requeridos al crear: EMPLEADO_NO, EMPLEADO_APELLIDO_PATERNO, EMPLEADO_APELLIDO_MATERNO, EMPLEADO_NOMBRE.\nEl resto son opcionales (nullable).\n\n**Nota para empleados:** el rol `empleado` no tiene acceso a este módulo directamente; solo puede ver su propio expediente a través de `GET /auth/me`.",
+      "description": "CRUD completo de empleados.\n\n**Requiere:** token con módulo `empleados`.\n\nCampos requeridos al crear: EMPLEADO_NO, EMPLEADO_APELLIDO_PATERNO, EMPLEADO_APELLIDO_MATERNO, EMPLEADO_NOMBRE.\nEl resto son opcionales (nullable).\n\n**Nota para empleados:** el rol `empleado` no tiene acceso al listado CRUD; puede ver su expediente completo con **Mi expediente (empleado autenticado)** (`GET /empleados/me`) o los datos de usuario con **Mi perfil (me)** (`GET /auth/me`).",
       "item": [
+        {
+          "name": "Mi expediente (empleado autenticado)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/empleados/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "empleados", "me"]
+            },
+            "description": "Devuelve el expediente del empleado vinculado al usuario autenticado (perfil con estudios, familiares y plazas).\n\n**Requiere:** token válido.\n\n**Errores:** `404` si la cuenta no está vinculada a un `EMPLEADO_NO`."
+          }
+        },
         {
           "name": "Listar todos los empleados",
           "request": {
