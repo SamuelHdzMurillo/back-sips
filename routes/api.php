@@ -64,6 +64,7 @@ Route::middleware('auth:sanctum')->get('/empleados/me', [EmpleadoController::cla
 
 Route::middleware(['auth:sanctum', 'module:empleados'])->group(function () {
     Route::get('/empleados', [EmpleadoController::class, 'index']);
+    Route::get('/empleados/count', [EmpleadoController::class, 'count']);
     Route::post('/empleados', [EmpleadoController::class, 'store']);
     Route::get('/empleados/{no}', [EmpleadoController::class, 'show']);
     Route::put('/empleados/{no}', [EmpleadoController::class, 'update']);

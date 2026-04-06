@@ -17,6 +17,16 @@ class EmpleadoController extends Controller
         return response()->json($empleados);
     }
 
+    /**
+     * Total de registros en el catálogo (evita GET /empleados/{no} con no="count" → error).
+     */
+    public function count(): JsonResponse
+    {
+        return response()->json([
+            'total' => Empleado::query()->count(),
+        ]);
+    }
+
     public function showMe(): JsonResponse
     {
         $user = Auth::user();
@@ -60,14 +70,43 @@ class EmpleadoController extends Controller
         return response()->json($empleado, 201);
     }
 
-    public function show(int $no): JsonResponse
+    /**
+     * El segmento de ruta llega como string; (int) de '' o 'undefined' da 0 y rompe findOrFail.
+     */
+    private function empleadoNoDesdeRuta(int|string $no): ?int
     {
+        if (is_int($no)) {
+            return $no > 0 ? $no : null;
+        }
+        $s = trim((string) $no);
+        if ($s === '' || !ctype_digit($s)) {
+            return null;
+        }
+        $value = (int) $s;
+
+        return $value > 0 ? $value : null;
+    }
+
+    public function show(int|string $no): JsonResponse
+    {
+        $no = $this->empleadoNoDesdeRuta($no);
+        if ($no === null) {
+            return response()->json([
+                'message' => 'Número de empleado inválido. Usa un entero mayor que cero o GET /empleados/me para el empleado vinculado a tu cuenta.',
+            ], 422);
+        }
         $empleado = Empleado::with(['perfil.estudios', 'familiares', 'plazas'])->findOrFail($no);
         return response()->json($empleado);
     }
 
-    public function update(Request $request, int $no): JsonResponse
+    public function update(Request $request, int|string $no): JsonResponse
     {
+        $no = $this->empleadoNoDesdeRuta($no);
+        if ($no === null) {
+            return response()->json([
+                'message' => 'Número de empleado inválido. Usa un entero mayor que cero.',
+            ], 422);
+        }
         $empleado = Empleado::findOrFail($no);
 
         $data = $request->validate([
@@ -97,8 +136,14 @@ class EmpleadoController extends Controller
         return response()->json($empleado);
     }
 
-    public function destroy(int $no): JsonResponse
+    public function destroy(int|string $no): JsonResponse
     {
+        $no = $this->empleadoNoDesdeRuta($no);
+        if ($no === null) {
+            return response()->json([
+                'message' => 'Número de empleado inválido. Usa un entero mayor que cero.',
+            ], 422);
+        }
         $empleado = Empleado::findOrFail($no);
         $empleado->delete();
 
