@@ -17,6 +17,7 @@ class ModulesSeeder extends Seeder
             ['name' => 'estudios',        'label' => 'Estudios',            'description' => 'Estudios académicos del empleado'],
             ['name' => 'solicitud-lentes','label' => 'Solicitud de Lentes', 'description' => 'Solicitudes de lentes de los empleados'],
             ['name' => 'lotes-lentes',    'label' => 'Lotes de Lentes',     'description' => 'Gestión de lotes de lentes'],
+            ['name' => 'convocatorias',   'label' => 'Convocatorias',       'description' => 'Convocatorias de plazas y postulaciones'],
         ];
 
         foreach ($modules as $module) {

@@ -63,4 +63,14 @@ class Empleado extends Model
     {
         return $this->hasMany(SolicitudLentes::class, 'EMPLEADO_NO', 'EMPLEADO_NO');
     }
+
+    public function postulacionesConvocatoria(): HasMany
+    {
+        return $this->hasMany(ConvocatoriaPostulacion::class, 'EMPLEADO_NO', 'EMPLEADO_NO');
+    }
+
+    public function estaActivo(): bool
+    {
+        return in_array(strtoupper((string) $this->EMPLEADO_ACTIVO), ['1', 'A', 'S'], true);
+    }
 }

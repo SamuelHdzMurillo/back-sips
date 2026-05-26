@@ -10,6 +10,7 @@ use App\Http\Controllers\PerfilProfesionalController;
 use App\Http\Controllers\LoteLentesController;
 use App\Http\Controllers\SolicitudLentesController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\ConvocatoriaController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -151,4 +152,29 @@ Route::middleware(['auth:sanctum', 'module:lotes-lentes'])->group(function () {
     Route::delete('/lotes-lentes/{id}', [LoteLentesController::class, 'destroy']);
     Route::post('/lotes-lentes/{id}/solicitudes/{solicitudId}', [LoteLentesController::class, 'addSolicitud']);
     Route::delete('/lotes-lentes/{id}/solicitudes/{solicitudId}', [LoteLentesController::class, 'removeSolicitud']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Convocatorias — autogestión del empleado
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth:sanctum')->prefix('convocatorias')->group(function () {
+    Route::get('/abiertas', [ConvocatoriaController::class, 'abiertas']);
+    Route::get('/mis-postulaciones', [ConvocatoriaController::class, 'misPostulaciones']);
+    Route::post('/{id}/postular', [ConvocatoriaController::class, 'postular']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Convocatorias — administración RH
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'module:convocatorias'])->prefix('convocatorias')->group(function () {
+    Route::get('/', [ConvocatoriaController::class, 'index']);
+    Route::post('/', [ConvocatoriaController::class, 'store']);
+    Route::get('/{id}/postulaciones', [ConvocatoriaController::class, 'postulaciones']);
+    Route::get('/{id}', [ConvocatoriaController::class, 'show']);
+    Route::put('/{id}', [ConvocatoriaController::class, 'update']);
+    Route::delete('/{id}', [ConvocatoriaController::class, 'destroy']);
 });

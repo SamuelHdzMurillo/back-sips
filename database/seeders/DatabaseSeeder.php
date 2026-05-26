@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
         $this->call(EmpleadosSeeder::class);
         $this->call(SolicitudLentesSeeder::class);
         $this->call(ModulesSeeder::class);
+        $this->call(ConvocatoriasSeeder::class);
         $this->call(SuperAdminSeeder::class);
     }
 }
