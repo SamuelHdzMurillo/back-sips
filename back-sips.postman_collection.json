@@ -414,6 +414,22 @@
           }
         },
         {
+          "name": "Tabla de antigüedad de mi plantel",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/empleados/me/plantel/tabla-antiguedad",
+              "host": ["{{base_url}}"],
+              "path": ["api", "empleados", "me", "plantel", "tabla-antiguedad"]
+            },
+            "description": "Devuelve la tabla de antigüedad de todas las personas adscritas al/los plantel(es) del empleado autenticado.\n\nIncluye por plantel:\n- `clave_plantel`\n- `nombre_plantel`\n- `total_personas`\n- `tabla_antiguedad` (empleado_no, nombre_completo, fecha_ingreso, antiguedad_anios, puesto, categoria, funcion)\n\nLa antigüedad se calcula preferentemente con `EMPLEADO_FECHA_INGRESO`; si no existe, usa `EMPLEADO_ANTIGUEDAD`.\n\n**Requiere:** token válido."
+          }
+        },
+        {
           "name": "Listar todos los empleados",
           "request": {
             "method": "GET",
