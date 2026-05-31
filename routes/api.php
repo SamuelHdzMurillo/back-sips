@@ -64,6 +64,12 @@ Route::prefix('modules')->middleware(['auth:sanctum', 'role:superadmin'])->group
 Route::middleware('auth:sanctum')->get('/empleados/me', [EmpleadoController::class, 'showMe']);
 Route::middleware('auth:sanctum')->get('/empleados/me/plantel/tabla-antiguedad', [EmpleadoController::class, 'tablaAntiguedadMiPlantel']);
 
+// Tabla de antigüedad por plantel(es) — solo administradores
+Route::middleware(['auth:sanctum', 'role:superadmin,admin'])->get(
+    '/empleados/planteles/tabla-antiguedad',
+    [EmpleadoController::class, 'tablaAntiguedadPlanteles']
+);
+
 Route::middleware(['auth:sanctum', 'module:empleados'])->group(function () {
     Route::get('/empleados', [EmpleadoController::class, 'index']);
     Route::get('/empleados/count', [EmpleadoController::class, 'count']);
