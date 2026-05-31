@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Empleado;
 use App\Models\LoteLentes;
 use App\Models\SolicitudLentes;
 use Illuminate\Http\JsonResponse;
@@ -157,6 +158,17 @@ class LoteLentesController extends Controller
         $solicitud->update(['LOTE_ID' => null]);
 
         return response()->json(['message' => 'Solicitud removida del lote']);
+    }
+
+    /**
+     * Expediente completo de un empleado (para el detalle de solicitudes del lote).
+     * GET /lotes-lentes/empleados/{no}
+     */
+    public function showEmpleado(int $no): JsonResponse
+    {
+        $empleado = Empleado::with(['perfil.estudios', 'familiares', 'plazas'])->findOrFail($no);
+
+        return response()->json($empleado);
     }
 
     /**

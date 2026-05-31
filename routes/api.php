@@ -64,12 +64,6 @@ Route::prefix('modules')->middleware(['auth:sanctum', 'role:superadmin'])->group
 Route::middleware('auth:sanctum')->get('/empleados/me', [EmpleadoController::class, 'showMe']);
 Route::middleware('auth:sanctum')->get('/empleados/me/plantel/tabla-antiguedad', [EmpleadoController::class, 'tablaAntiguedadMiPlantel']);
 
-// Tabla de antigüedad por plantel(es) — solo administradores
-Route::middleware(['auth:sanctum', 'role:superadmin,admin'])->get(
-    '/empleados/planteles/tabla-antiguedad',
-    [EmpleadoController::class, 'tablaAntiguedadPlanteles']
-);
-
 Route::middleware(['auth:sanctum', 'module:empleados'])->group(function () {
     Route::get('/empleados', [EmpleadoController::class, 'index']);
     Route::get('/empleados/count', [EmpleadoController::class, 'count']);
@@ -151,6 +145,7 @@ Route::middleware(['auth:sanctum', 'module:solicitud-lentes'])->group(function (
 */
 Route::middleware(['auth:sanctum', 'module:lotes-lentes'])->group(function () {
     Route::get('/lotes-lentes/periodo', [LoteLentesController::class, 'solicitudesByPeriodo']);
+    Route::get('/lotes-lentes/empleados/{no}', [LoteLentesController::class, 'showEmpleado']);
     Route::get('/lotes-lentes', [LoteLentesController::class, 'index']);
     Route::post('/lotes-lentes', [LoteLentesController::class, 'store']);
     Route::get('/lotes-lentes/{id}', [LoteLentesController::class, 'show']);
