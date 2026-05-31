@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use App\Support\StorageUrl;
 
 class Convocatoria extends Model
 {
@@ -22,6 +25,18 @@ class Convocatoria extends Model
     public const LOCALIDAD_LOCAL = 'LOCAL';
     public const LOCALIDAD_DESIERTA = 'DESIERTA';
 
+    protected $appends = [
+        'documento_url',
+        'documento_api_url',
+        'documento_url_acceso',
+        'documento_ruta_storage',
+        'documento_tipo',
+        'documento_existe',
+        'documento_imagen_url',
+        'documento_imagen_api_url',
+        'documento_imagen_existe',
+    ];
+
     protected $fillable = [
         'FECHA_INICIO',
         'FECHA_FIN',
@@ -33,6 +48,7 @@ class Convocatoria extends Model
         'TURNO',
         'LOCALIDAD',
         'CONVOCATORIA_RUTA_FOTO',
+        'CONVOCATORIA_RUTA_PREVIEW',
         'ESTATUS',
     ];
 
@@ -41,6 +57,110 @@ class Convocatoria extends Model
         'FECHA_FIN'    => 'date',
         'SUELDO'       => 'decimal:2',
     ];
+
+    public function getConvocatoriaRutaFotoAttribute(?string $value): ?string
+    {
+        return StorageUrl::normalize($value);
+    }
+
+    public function getDocumentoUrlAttribute(): ?string
+    {
+        if (! $this->documento_existe) {
+            return null;
+        }
+
+        return $this->CONVOCATORIA_RUTA_FOTO;
+    }
+
+    public function getDocumentoRutaStorageAttribute(): ?string
+    {
+        return StorageUrl::relativePath($this->attributes['CONVOCATORIA_RUTA_FOTO'] ?? null);
+    }
+
+    public function getDocumentoTipoAttribute(): ?string
+    {
+        return StorageUrl::tipoArchivo($this->attributes['CONVOCATORIA_RUTA_FOTO'] ?? null);
+    }
+
+    public function getDocumentoApiUrlAttribute(): ?string
+    {
+        if (! $this->documento_existe) {
+            return null;
+        }
+
+        return StorageUrl::apiUrl('convocatorias/'.$this->ID.'/documento');
+    }
+
+    public function getDocumentoUrlAccesoAttribute(): ?string
+    {
+        if (! $this->documento_existe) {
+            return null;
+        }
+
+        $signed = URL::temporarySignedRoute(
+            'convocatorias.documento',
+            now()->addHours(24),
+            ['id' => $this->ID]
+        );
+
+        if (! app()->runningInConsole() && request()->hasHeader('Host')) {
+            $signed = preg_replace('#^https?://[^/]+#', StorageUrl::baseUrl(), $signed);
+        }
+
+        return $signed;
+    }
+
+    public function getDocumentoExisteAttribute(): bool
+    {
+        $path = $this->documento_ruta_storage;
+
+        return $path !== null && Storage::disk('public')->exists($path);
+    }
+
+    public function getDocumentoImagenRutaStorageAttribute(): ?string
+    {
+        $preview = $this->attributes['CONVOCATORIA_RUTA_PREVIEW'] ?? null;
+
+        if ($preview && Storage::disk('public')->exists($preview)) {
+            return $preview;
+        }
+
+        if ($this->documento_tipo === 'imagen' && $this->documento_existe) {
+            return $this->documento_ruta_storage;
+        }
+
+        return null;
+    }
+
+    public function getDocumentoImagenExisteAttribute(): bool
+    {
+        $path = $this->documento_imagen_ruta_storage;
+
+        return $path !== null && Storage::disk('public')->exists($path);
+    }
+
+    public function getDocumentoImagenUrlAttribute(): ?string
+    {
+        if (! $this->documento_imagen_existe) {
+            return null;
+        }
+
+        return StorageUrl::publicUrl($this->documento_imagen_ruta_storage);
+    }
+
+    public function getDocumentoImagenApiUrlAttribute(): ?string
+    {
+        if (! $this->documento_imagen_existe) {
+            return null;
+        }
+
+        return StorageUrl::apiUrl('convocatorias/'.$this->ID.'/imagen');
+    }
+
+    public function tieneDocumento(): bool
+    {
+        return $this->documento_existe;
+    }
 
     public function postulaciones(): HasMany
     {

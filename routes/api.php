@@ -156,12 +156,25 @@ Route::middleware(['auth:sanctum', 'module:lotes-lentes'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
+| Convocatorias — ver archivo (URL firmada, sin token)
+|--------------------------------------------------------------------------
+*/
+Route::get('/convocatorias/{id}/ver-archivo', [ConvocatoriaController::class, 'documento'])
+    ->middleware('signed')
+    ->name('convocatorias.documento');
+
+/*
+|--------------------------------------------------------------------------
 | Convocatorias — autogestión del empleado
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth:sanctum')->prefix('convocatorias')->group(function () {
     Route::get('/abiertas', [ConvocatoriaController::class, 'abiertas']);
     Route::get('/mis-postulaciones', [ConvocatoriaController::class, 'misPostulaciones']);
+    Route::get('/{id}/documento-base64', [ConvocatoriaController::class, 'documentoBase64']);
+    Route::get('/{id}/imagen', [ConvocatoriaController::class, 'imagen']);
+    Route::get('/{id}/documento', [ConvocatoriaController::class, 'documento']);
+    Route::get('/{id}', [ConvocatoriaController::class, 'show']);
     Route::post('/{id}/postular', [ConvocatoriaController::class, 'postular']);
 });
 
@@ -174,7 +187,6 @@ Route::middleware(['auth:sanctum', 'module:convocatorias'])->prefix('convocatori
     Route::get('/', [ConvocatoriaController::class, 'index']);
     Route::post('/', [ConvocatoriaController::class, 'store']);
     Route::get('/{id}/postulaciones', [ConvocatoriaController::class, 'postulaciones']);
-    Route::get('/{id}', [ConvocatoriaController::class, 'show']);
     Route::put('/{id}', [ConvocatoriaController::class, 'update']);
     Route::delete('/{id}', [ConvocatoriaController::class, 'destroy']);
 });

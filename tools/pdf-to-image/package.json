@@ -1,0 +1,8 @@
+{
+  "name": "back-sips-pdf-to-image",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "pdf-to-img": "^4.4.0"
+  }
+}
