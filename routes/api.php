@@ -150,6 +150,7 @@ Route::middleware(['auth:sanctum', 'module:lotes-lentes'])->group(function () {
     Route::get('/lotes-lentes/{id}', [LoteLentesController::class, 'show']);
     Route::put('/lotes-lentes/{id}', [LoteLentesController::class, 'update']);
     Route::delete('/lotes-lentes/{id}', [LoteLentesController::class, 'destroy']);
+    Route::patch('/lotes-lentes/{id}/solicitudes/estatus', [LoteLentesController::class, 'updateSolicitudesEstatus']);
     Route::post('/lotes-lentes/{id}/solicitudes/{solicitudId}', [LoteLentesController::class, 'addSolicitud']);
     Route::delete('/lotes-lentes/{id}/solicitudes/{solicitudId}', [LoteLentesController::class, 'removeSolicitud']);
 });

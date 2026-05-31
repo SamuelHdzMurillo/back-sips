@@ -108,6 +108,27 @@ class LoteLentesController extends Controller
     }
 
     /**
+     * Actualiza el estatus de todas las solicitudes vinculadas al lote.
+     * PATCH /lotes-lentes/{id}/solicitudes/estatus  { "ESTATUS": "En Revisión" }
+     */
+    public function updateSolicitudesEstatus(Request $request, int $id): JsonResponse
+    {
+        $lote = LoteLentes::findOrFail($id);
+
+        $data = $request->validate([
+            'ESTATUS' => 'required|string|max:50',
+        ]);
+
+        $actualizadas = $lote->solicitudes()->update(['ESTATUS' => $data['ESTATUS']]);
+
+        return response()->json([
+            'message'      => 'Estatus actualizado en las solicitudes del lote.',
+            'actualizadas' => $actualizadas,
+            'ESTATUS'      => $data['ESTATUS'],
+        ]);
+    }
+
+    /**
      * Agrega una solicitud al lote.
      * POST /lotes-lentes/{id}/solicitudes/{solicitudId}
      */
