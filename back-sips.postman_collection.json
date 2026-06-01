@@ -430,6 +430,28 @@
           }
         },
         {
+          "name": "Tabla de antigüedad — todos los planteles (admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/empleados/planteles/tabla-antiguedad?q=&clave_plantel=&nombre_plantel=&solo_activos=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "empleados", "planteles", "tabla-antiguedad"],
+              "query": [
+                { "key": "q", "value": "", "description": "Búsqueda: nombre, apellidos, CURP, RFC, plantel o número de empleado" },
+                { "key": "clave_plantel", "value": "", "description": "Filtrar por clave CCT exacta" },
+                { "key": "nombre_plantel", "value": "", "description": "Filtrar por nombre de plantel (parcial)" },
+                { "key": "solo_activos", "value": "1", "description": "1 = solo activos (default), 0 = incluir inactivos" }
+              ]
+            },
+            "description": "Tabla de antigüedad de **todo el personal** agrupada por plantel.\n\n**Requiere rol:** `admin` o `superadmin` (403 para empleados).\n\nRespuesta incluye `planteles_catalogo`, `total_planteles`, `total_empleados` y por plantel `tabla_antiguedad` con detalle admin (CURP, RFC, NSS, correo, tipo_sangre, activo).\n\nOrden dentro de cada plantel: mayor antigüedad primero."
+          }
+        },
+        {
           "name": "Listar todos los empleados",
           "request": {
             "method": "GET",
