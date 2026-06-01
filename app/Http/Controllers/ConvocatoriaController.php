@@ -44,7 +44,10 @@ class ConvocatoriaController extends Controller
             $query->abiertas();
         }
 
-        $convocatorias = $query->orderByDesc('FECHA_INICIO')->get();
+        $convocatorias = $query
+            ->withCount('postulaciones')
+            ->orderByDesc('FECHA_INICIO')
+            ->get();
 
         return response()->json($convocatorias->map(fn (Convocatoria $c) => $this->formatConvocatoria($c)));
     }
@@ -64,7 +67,7 @@ class ConvocatoriaController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $convocatoria = Convocatoria::findOrFail($id);
+        $convocatoria = Convocatoria::withCount('postulaciones')->findOrFail($id);
         $convocatoria->sincronizarEstatus();
         $convocatoria->refresh();
         $this->ensurePreviewImagen($convocatoria);
@@ -544,6 +547,10 @@ class ConvocatoriaController extends Controller
 
         if ($withPreview && ($data['documento_imagen_existe'] ?? false)) {
             $data = $this->appendDocumentoPreview($data, $convocatoria);
+        }
+
+        if (! array_key_exists('postulaciones_count', $data)) {
+            $data['postulaciones_count'] = $convocatoria->postulaciones()->count();
         }
 
         return $data;
