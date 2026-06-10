@@ -1117,6 +1117,59 @@
             },
             "description": "Devuelve todas las solicitudes de lentes del empleado indicado, incluyendo las de sus familiares.\n\n**Requiere módulo:** `solicitud-lentes`"
           }
+        },
+        {
+          "name": "Configuración tabla pública",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/solicitud-lentes/tabla-publica",
+              "host": ["{{base_url}}"],
+              "path": ["api", "solicitud-lentes", "tabla-publica"]
+            },
+            "description": "Devuelve si la tabla se puede compartir, el enlace, los lotes seleccionados y el catálogo de lotes disponibles para elegir.\n\n**Requiere módulo:** `solicitud-lentes`"
+          }
+        },
+        {
+          "name": "Activar/desactivar tabla pública",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"COMPARTIR\": true,\n  \"TITULO\": \"Solicitudes de lentes 2026\",\n  \"LOTES_IDS\": [1, 2]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/solicitud-lentes/tabla-publica",
+              "host": ["{{base_url}}"],
+              "path": ["api", "solicitud-lentes", "tabla-publica"]
+            },
+            "description": "Enciende o apaga la visibilidad pública y elige qué lotes mostrar.\n\n- `COMPARTIR` (boolean): activa o desactiva el enlace público\n- `TITULO` (string, opcional): título visible para el público\n- `LOTES_IDS` (array de enteros): IDs de los lotes cuyas solicitudes se mostrarán\n\n**Requiere módulo:** `solicitud-lentes`"
+          }
+        },
+        {
+          "name": "Ver tabla pública (sin token de auth)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/solicitud-lentes/public/tabla/{{tabla_publica_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "solicitud-lentes", "public", "tabla", "{{tabla_publica_token}}"]
+            },
+            "description": "Ruta pública para ver solicitudes de lentes **solo de los lotes seleccionados** por el administrador. **No requiere autenticación.**\n\nSolo responde con datos si `COMPARTIR` está activo. El token se obtiene de `GET /solicitud-lentes/tabla-publica`.\n\nRespuesta agrupada por lote. Cada solicitud incluye todos los campos de `solicitud_lentes` más `empleado`, `familiar` (con `DOCUMENTO_PARENTESCO`), `plaza` y `lote`."
+          }
         }
       ]
     },

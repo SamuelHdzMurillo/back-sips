@@ -9,6 +9,7 @@ use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\PerfilProfesionalController;
 use App\Http\Controllers\LoteLentesController;
 use App\Http\Controllers\SolicitudLentesController;
+use App\Http\Controllers\SolicitudLentesTablaPublicaController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ConvocatoriaController;
 use Illuminate\Support\Facades\Route;
@@ -132,10 +133,22 @@ Route::middleware(['auth:sanctum', 'module:estudios'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
+| Solicitud Lentes — tabla pública (sin autenticación)
+|--------------------------------------------------------------------------
+*/
+Route::get(
+    '/solicitud-lentes/public/tabla/{token}',
+    [SolicitudLentesTablaPublicaController::class, 'show']
+);
+
+/*
+|--------------------------------------------------------------------------
 | Solicitud Lentes
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'module:solicitud-lentes'])->group(function () {
+    Route::get('/solicitud-lentes/tabla-publica', [SolicitudLentesTablaPublicaController::class, 'config']);
+    Route::patch('/solicitud-lentes/tabla-publica', [SolicitudLentesTablaPublicaController::class, 'update']);
     Route::get('/solicitud-lentes', [SolicitudLentesController::class, 'index']);
     Route::post('/solicitud-lentes', [SolicitudLentesController::class, 'store']);
     Route::get('/solicitud-lentes/{id}', [SolicitudLentesController::class, 'show']);
