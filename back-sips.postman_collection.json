@@ -22,7 +22,7 @@
       "key": "admin_user_id",
       "value": "2",
       "type": "string",
-      "description": "ID del usuario admin al que se asignan/revocan módulos"
+      "description": "ID del usuario admin/superadmin (asignar módulos, reiniciar contraseña, etc.)"
     },
     {
       "key": "empleado_no",
@@ -70,7 +70,7 @@
   "item": [
     {
       "name": "Autenticación",
-      "description": "Endpoints de login, registro y gestión de sesión.\n\n**Flujo inicial:**\n1. Ejecuta **Login** con las credenciales del superadmin: `superadmin@sips.com` / `Admin@1234!`\n2. Copia el `token` de la respuesta y pégalo en la variable de colección `auth_token`\n3. Ya puedes usar el resto de los endpoints\n\n**Credenciales superadmin inicial:**\n- Email: `superadmin@sips.com`\n- Password: `Admin@1234!`\n\n**Flujo para dar de alta un admin:**\n1. Ejecuta **Login** como superadmin y guarda el token.\n2. Llama **Módulos disponibles para admin (pre-alta)** para ver todos los permisos que puedes asignar.\n3. Ejecuta **Registro de superadmin o admin** incluyendo los módulos seleccionados en el campo `modules`.",
+      "description": "Endpoints de login, registro y gestión de sesión.\n\n**Flujo inicial:**\n1. Ejecuta **Login** con las credenciales del superadmin: `superadmin@sips.com` / `Admin@1234!`\n2. Copia el `token` de la respuesta y pégalo en la variable de colección `auth_token`\n3. Ya puedes usar el resto de los endpoints\n\n**Credenciales superadmin inicial:**\n- Email: `superadmin@sips.com`\n- Password: `Admin@1234!`\n\n**Flujo para dar de alta un admin:**\n1. Ejecuta **Login** como superadmin y guarda el token.\n2. Llama **Módulos disponibles para admin (pre-alta)** para ver todos los permisos que puedes asignar.\n3. Ejecuta **Registro de superadmin o admin** incluyendo los módulos seleccionados en el campo `modules`.\n\n**Flujo para consultar y gestionar admins existentes:**\n1. **Listar admins y permisos** — muestra todos los superadmin/admin con sus módulos y acciones.\n2. **Reiniciar contraseña de admin** — usa la variable `admin_user_id` con el `id` del usuario a actualizar.",
       "item": [
         {
           "name": "Login",
@@ -176,6 +176,94 @@
                   "raw": "{{base_url}}/api/auth/register",
                   "host": ["{{base_url}}"],
                   "path": ["api", "auth", "register"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar admins y permisos",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/admins",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "admins"]
+            },
+            "description": "Lista todos los usuarios con rol `superadmin` o `admin`, incluyendo sus módulos asignados y las acciones permitidas sobre cada uno.\n\n**Requiere rol:** `superadmin`\n\n**Respuesta:**\n- `total` — cantidad de administradores\n- `admins[]` — cada admin incluye:\n  - `id`, `name`, `email`, `role`\n  - `modules[]` — con `slug`, `label` y `actions` (`ver`, `crear`, `editar`, `eliminar`)\n  - `email_verified_at`, `created_at`, `updated_at`\n\n**Notas:**\n- `superadmin` aparece con **todos** los módulos del sistema.\n- `admin` solo muestra los módulos asignados en `user_modules`."
+          },
+          "response": [
+            {
+              "name": "200 OK - Listado de admins",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"total\": 2,\n  \"admins\": [\n    {\n      \"id\": 1,\n      \"name\": \"Super Admin\",\n      \"email\": \"superadmin@sips.com\",\n      \"role\": \"superadmin\",\n      \"modules\": [\n        { \"slug\": \"empleados\", \"label\": \"Empleados\", \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"] },\n        { \"slug\": \"lotes-lentes\", \"label\": \"Lotes de Lentes\", \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"] }\n      ],\n      \"empleado\": null,\n      \"email_verified_at\": null,\n      \"created_at\": \"2026-03-31T12:00:00.000000Z\",\n      \"updated_at\": \"2026-03-31T12:00:00.000000Z\"\n    },\n    {\n      \"id\": 2,\n      \"name\": \"Administrador SIPS\",\n      \"email\": \"admin@sips.com\",\n      \"role\": \"admin\",\n      \"modules\": [\n        { \"slug\": \"empleados\", \"label\": \"Empleados\", \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"] },\n        { \"slug\": \"solicitud-lentes\", \"label\": \"Solicitud de Lentes\", \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"] }\n      ],\n      \"empleado\": null,\n      \"email_verified_at\": null,\n      \"created_at\": \"2026-04-01T10:00:00.000000Z\",\n      \"updated_at\": \"2026-04-01T10:00:00.000000Z\"\n    }\n  ]\n}",
+              "_postman_previewlanguage": "json",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/auth/admins",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "auth", "admins"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reiniciar contraseña de admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"NuevaClave123!\",\n  \"password_confirmation\": \"NuevaClave123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/admins/{{admin_user_id}}/reset-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "admins", "{{admin_user_id}}", "reset-password"]
+            },
+            "description": "Actualiza la contraseña de un usuario `superadmin` o `admin` y revoca todos sus tokens activos (deberá iniciar sesión de nuevo).\n\n**Requiere rol:** `superadmin`\n\n**Path:**\n- `admin_user_id` — ID del administrador (variable de colección; obtén el `id` desde **Listar admins y permisos**)\n\n**[REQUERIDO]**\n- `password` (string, min 8)\n- `password_confirmation` (string, igual que password)\n\n**Errores posibles:**\n- `404` — no existe un admin con ese ID\n- `422` — validación de contraseña fallida"
+          },
+          "response": [
+            {
+              "name": "200 OK - Contraseña actualizada",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"message\": \"Contraseña actualizada correctamente. El administrador deberá iniciar sesión de nuevo.\",\n  \"admin\": {\n    \"id\": 2,\n    \"name\": \"Administrador SIPS\",\n    \"email\": \"admin@sips.com\",\n    \"role\": \"admin\",\n    \"modules\": [\n      { \"slug\": \"empleados\", \"label\": \"Empleados\", \"actions\": [\"ver\", \"crear\", \"editar\", \"eliminar\"] }\n    ],\n    \"empleado\": null,\n    \"email_verified_at\": null,\n    \"created_at\": \"2026-04-01T10:00:00.000000Z\",\n    \"updated_at\": \"2026-06-11T15:30:00.000000Z\"\n  }\n}",
+              "_postman_previewlanguage": "json",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"password\": \"NuevaClave123!\",\n  \"password_confirmation\": \"NuevaClave123!\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/auth/admins/{{admin_user_id}}/reset-password",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "auth", "admins", "{{admin_user_id}}", "reset-password"]
                 }
               }
             }

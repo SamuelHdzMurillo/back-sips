@@ -86,6 +86,54 @@ class AuthController extends Controller
     }
 
     /**
+     * Lista todos los usuarios con rol superadmin o admin, incluyendo módulos y permisos.
+     * Solo accesible para superadmin.
+     */
+    public function indexAdmins(): JsonResponse
+    {
+        $admins = User::query()
+            ->whereIn('role', ['superadmin', 'admin'])
+            ->with('modules')
+            ->orderBy('role')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'total'  => $admins->count(),
+            'admins' => $admins->map(fn (User $user) => $this->buildAdminDetailPayload($user))->values(),
+        ]);
+    }
+
+    /**
+     * Reinicia la contraseña de un superadmin o admin y revoca todos sus tokens activos.
+     * Solo accesible para superadmin.
+     */
+    public function resetAdminPassword(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = User::where('id', $id)
+            ->whereIn('role', ['superadmin', 'admin'])
+            ->first();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'No se encontró ningún administrador con ese ID.',
+            ], 404);
+        }
+
+        $user->update(['password' => $request->password]);
+        $user->tokens()->delete();
+
+        return response()->json([
+            'message' => 'Contraseña actualizada correctamente. El administrador deberá iniciar sesión de nuevo.',
+            'admin'   => $this->buildAdminDetailPayload($user->fresh('modules')),
+        ]);
+    }
+
+    /**
      * Auto-registro de empleado: valida número de empleado + RFC antes de crear cuenta.
      */
     public function registerEmpleado(Request $request): JsonResponse
@@ -189,6 +237,18 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Sesión cerrada correctamente.',
+        ]);
+    }
+
+    /**
+     * Payload extendido para listado/gestión de administradores.
+     */
+    private function buildAdminDetailPayload(User $user): array
+    {
+        return array_merge($this->buildUserPayload($user), [
+            'email_verified_at' => $user->email_verified_at,
+            'created_at'        => $user->created_at,
+            'updated_at'        => $user->updated_at,
         ]);
     }
 
