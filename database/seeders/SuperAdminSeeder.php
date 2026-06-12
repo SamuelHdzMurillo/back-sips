@@ -9,17 +9,23 @@ class SuperAdminSeeder extends Seeder
 {
     public function run(): void
     {
+        $password = env('SUPERADMIN_PASSWORD');
+
+        if (empty($password)) {
+            $this->command->error('SUPERADMIN_PASSWORD no está definida en .env');
+            return;
+        }
+
         User::updateOrCreate(
             ['email' => 'superadmin@sips.com'],
             [
                 'name'     => 'Super Admin',
                 'email'    => 'superadmin@sips.com',
-                'password' => bcrypt('Admin@1234!'),
+                'password' => bcrypt($password),
                 'role'     => 'superadmin',
             ]
         );
 
-        $this->command->info('SuperAdmin creado: superadmin@sips.com / Admin@1234!');
-        $this->command->warn('IMPORTANTE: Cambia la contraseña del superadmin en producción.');
+        $this->command->info('SuperAdmin creado/actualizado: superadmin@sips.com');
     }
 }
